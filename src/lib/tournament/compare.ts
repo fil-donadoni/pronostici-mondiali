@@ -83,6 +83,39 @@ export type CompareSummary = {
   wrong: number;
 };
 
+/**
+ * Punti per la Classifica giocatori: un punteggio esatto vale di più del solo
+ * esito (1/X/2) corretto. Unica fonte della regola di punteggio.
+ */
+export const POINTS = { exact: 3, outcome: 1 } as const;
+
+export type ScoreBreakdown = {
+  /** Pronostici con esito (1/X/2) corretto, inclusi quelli a punteggio esatto. */
+  correctResults: number;
+  /** Pronostici con punteggio identico al risultato reale. */
+  exactScores: number;
+  /** Totale punti: esatto -> POINTS.exact, solo esito -> POINTS.outcome. */
+  points: number;
+  /** Pronostici confrontati (partite con risultato reale disponibile). */
+  totalCompared: number;
+};
+
+/** Aggrega i Differenza di un utente in numeri per la Classifica. */
+export function scoreDiffs(diffs: GroupDiff[]): ScoreBreakdown {
+  let exact = 0;
+  let outcomeOnly = 0;
+  for (const d of diffs) {
+    if (d.exactMatch) exact++;
+    else if (d.outcomeMatch) outcomeOnly++;
+  }
+  return {
+    exactScores: exact,
+    correctResults: exact + outcomeOnly,
+    points: exact * POINTS.exact + outcomeOnly * POINTS.outcome,
+    totalCompared: diffs.length,
+  };
+}
+
 export function summarize(diffs: GroupDiff[]): CompareSummary {
   let exact = 0;
   let correctOutcome = 0;

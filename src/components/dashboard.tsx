@@ -2,8 +2,9 @@
 
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { toast } from "sonner";
-import { LogOut, RefreshCw, Trophy } from "lucide-react";
+import { ListOrdered, LogOut, RefreshCw, Trophy } from "lucide-react";
 import { signOut } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -166,6 +167,12 @@ export function Dashboard({
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Button asChild variant="outline" className="gap-2">
+              <Link href="/classifica">
+                <ListOrdered className="size-4" />
+                Classifica
+              </Link>
+            </Button>
             <Button
               onClick={handleSync}
               disabled={syncing}
