@@ -7,8 +7,12 @@ import { Separator } from "@/components/ui/separator";
 import { ScoreInput } from "@/components/score-input";
 import { GROUP_CODES, type GroupCode } from "@/lib/tournament/structure";
 import type { StandingRow } from "@/lib/tournament/types";
-import type { MatchInfo, Prediction, TeamInfo } from "@/lib/tournament/types";
-import type { PredictionPatch } from "@/components/dashboard";
+import type {
+  MatchInfo,
+  Prediction,
+  PredictionPatch,
+  TeamInfo,
+} from "@/lib/tournament/types";
 
 export function GroupsTab({
   teamMap,

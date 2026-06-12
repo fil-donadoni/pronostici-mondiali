@@ -19,10 +19,12 @@ export function ScoreInput({
   value,
   onChange,
   ariaLabel,
+  disabled,
 }: {
   value: number | "";
   onChange: (v: number | "") => void;
   ariaLabel: string;
+  disabled?: boolean;
 }) {
   return (
     <Input
@@ -31,6 +33,7 @@ export function ScoreInput({
       max={99}
       inputMode="numeric"
       data-score-input=""
+      disabled={disabled}
       aria-label={ariaLabel}
       value={value === "" ? "" : String(value)}
       onFocus={(e) => e.currentTarget.select()}

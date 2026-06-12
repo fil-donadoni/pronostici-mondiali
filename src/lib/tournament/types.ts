@@ -25,6 +25,13 @@ export type Prediction = {
   penaltyWinner: "home" | "away" | null;
 };
 
+/** Modifica parziale di un Pronostico salvata dalla UI. */
+export type PredictionPatch = {
+  homeScore: number;
+  awayScore: number;
+  penaltyWinner?: "home" | "away" | null;
+};
+
 export type RealResult = {
   matchId: string;
   homeScore: number;

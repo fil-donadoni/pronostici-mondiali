@@ -13,10 +13,10 @@ import {
 import type {
   MatchInfo,
   Prediction,
+  PredictionPatch,
   ResolvedKnockout,
   TeamInfo,
 } from "@/lib/tournament/types";
-import type { PredictionPatch } from "@/components/dashboard";
 
 const COLUMNS: Stage[] = ["R32", "R16", "QF", "SF", "FINAL"];
 
@@ -405,7 +405,12 @@ function TeamLine({
           →
         </Badge>
       )}
-      <ScoreInput value={score} ariaLabel={ariaLabel} onChange={onChange} />
+      <ScoreInput
+        value={score}
+        ariaLabel={ariaLabel}
+        onChange={onChange}
+        disabled={disabled}
+      />
     </div>
   );
 }
