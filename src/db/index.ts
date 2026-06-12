@@ -14,13 +14,17 @@ const globalForDb = globalThis as unknown as {
 
 // Supabase/Vercel: il transaction pooler (porta 6543) non supporta i
 // prepared statement; i pooler limitano le connessioni -> pool piccolo.
-const isPooler = /pooler\.supabase\.com/.test(connectionString);
-const isTransactionPooler = /:6543|pgbouncer=true/.test(connectionString);
+const isPooler = /pooler\.supabase\.com|pgbouncer=true/.test(connectionString);
 const client =
   globalForDb.client ??
   postgres(connectionString, {
-    max: isPooler ? 1 : 10,
-    prepare: isTransactionPooler ? false : undefined,
+    max: isPooler ? 3 : 10,
+    // pgbouncer (qualsiasi pooler Supabase) NON regge i prepared statement
+    // named: query concorrenti via Promise.all si appendono -> disattiva.
+    prepare: isPooler ? false : undefined,
+    // Supabase pooler richiede TLS; fail-fast invece di appendersi per 60s.
+    ssl: isPooler ? "require" : undefined,
+    connect_timeout: 10,
   });
 if (process.env.NODE_ENV !== "production") globalForDb.client = client;
 
