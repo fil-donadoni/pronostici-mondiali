@@ -25,6 +25,9 @@ const client =
     // Supabase pooler richiede TLS; fail-fast invece di appendersi per 60s.
     ssl: isPooler ? "require" : undefined,
     connect_timeout: 10,
+    // Una query non torna mai -> muore a 15s con errore chiaro nei log,
+    // invece di mandare in timeout la function a 300s.
+    connection: { statement_timeout: 15000 },
   });
 if (process.env.NODE_ENV !== "production") globalForDb.client = client;
 
