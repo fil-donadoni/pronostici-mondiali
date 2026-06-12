@@ -21,7 +21,7 @@ L'ordinamento delle squadre dentro un Girone, derivato dai Pronostici dell'utent
 _Avoid_: Standings, ranking
 
 **Tabellone**:
-La struttura a eliminazione diretta dal Round of 32 alla finale. Gli slot sono fissi per *posizione* (es. "1ª del Girone A"), secondo lo schema ufficiale FIFA.
+La struttura a eliminazione diretta dal Round of 32 alla finale. Gli slot sono fissi per _posizione_ (es. "1ª del Girone A"), secondo lo schema ufficiale FIFA.
 _Avoid_: Bracket, albero, knockout stage
 
 **Risultato reale**:
@@ -33,7 +33,7 @@ L'azione manuale (a pulsante) di scaricare i Risultati reali e confrontarli con 
 _Avoid_: Refresh, fetch, aggiornamento
 
 **Differenza**:
-Lo scarto tra Pronostico e Risultato reale, evidenziato dopo un Sync su due livelli: (1) per le partite di Girone, confronto diretto punteggio/esito (stesse squadre); (2) per il knockout, confronto degli *insiemi* di squadre previste vs reali a ogni turno (chi raggiunge ottavi, quarti, ...), non degli accoppiamenti.
+Lo scarto tra Pronostico e Risultato reale, evidenziato dopo un Sync su due livelli: (1) per le partite di Girone, confronto diretto punteggio/esito (stesse squadre); (2) per il knockout, confronto degli _insiemi_ di squadre previste vs reali a ogni turno (chi raggiunge ottavi, quarti, ...), non degli accoppiamenti.
 _Avoid_: Diff, scarto, errore
 
 **Terza qualificata**:

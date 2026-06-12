@@ -4,7 +4,7 @@ Le 8 migliori terze che accedono al Round of 32 sono determinate da un **ranking
 
 ## Perché
 
-La regola FIFA reale assegna le terze agli slot tramite una tabella combinatoria (495 combinazioni a seconda di *quali* gironi producono le terze qualificate): molto codice per casi limite che, in un'app di pronostici personali, danno quasi sempre lo stesso esito del ranking lineare. Si è scelta la semplicità accettando una deviazione consapevole dalla regola ufficiale.
+La regola FIFA reale assegna le terze agli slot tramite una tabella combinatoria (495 combinazioni a seconda di _quali_ gironi producono le terze qualificate): molto codice per casi limite che, in un'app di pronostici personali, danno quasi sempre lo stesso esito del ranking lineare. Si è scelta la semplicità accettando una deviazione consapevole dalla regola ufficiale.
 
 ## Conseguenza
 

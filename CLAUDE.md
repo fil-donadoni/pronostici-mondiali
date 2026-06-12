@@ -18,6 +18,14 @@ Domain glossary and the exact Italian terms to use (Pronostico, Partita, Girone,
 PORT=3100 npm run dev        # dev server (port pinned — see Local setup)
 npm run build                # next build
 npm run lint                 # eslint
+npm run lint:fix             # eslint --fix
+npm run format               # prettier --write (whole repo)
+npm run format:check         # prettier --check (no writes)
+npm run check:ts             # tsc --noEmit
+npm run check:all            # format + lint + check:ts
+npm test                     # vitest run
+npm run test:watch           # vitest (watch)
+npm test src/lib/foo.test.ts # run a single test file
 
 npx drizzle-kit push --force # apply schema to DB (DDL) — uses DIRECT_URL
 npm run db:seed              # seed teams + matches (tsx src/db/seed.ts)
@@ -25,7 +33,12 @@ npm run db:generate          # generate SQL migrations
 npm run db:studio            # drizzle studio
 ```
 
-There is **no test runner** configured.
+### Quality gates (before marking any task done)
+
+1. `npm run check:all` — prettier + eslint + `tsc --noEmit`, zero errors.
+2. `npm test` — vitest suite, zero failures.
+
+Enforced on commit by a **husky** `pre-commit` hook: `lint-staged` (prettier on staged files) + `npm run lint` + `npm run check:ts`. Prettier config in `.prettierrc` (4-space, double quotes, `printWidth` 80); editor format-on-save wired via `.vscode/settings.json`. Tests live next to the code as `*.test.ts` (pure logic only — `src/lib/tournament/`, `src/lib/leaderboard.ts`); DB-touching code is split so the pure part is testable without `@/db`.
 
 ### Local setup
 
@@ -48,7 +61,7 @@ All tournament logic is pure functions over the raw data, with no DB access:
 
 - **`engine.ts`** — the heart. `computeStandings()` builds the 12 group tables from the user's predictions (3/1/0 points, tie-break in `compareRows`); `resolveBracket()` propagates predictions through the whole knockout (resolves each slot: group winner/runner-up, third-place via the official FIFA Annex C table in `third-place-table.ts`, winner-of/loser-of); `teamsReachingStage()` produces the set of teams predicted to reach each round.
 - **`structure.ts`** — static knockout shape: `KNOCKOUT_MATCHES` (ordered so winner-of dependencies resolve in sequence), `GROUP_CODES`, stage order, `Slot` type.
-- **`compare.ts`** — **Differenza** logic, two levels: `groupDiffs()`/`summarize()` compare predicted vs real scores on group matches directly; `roundSetDiffs()` compares the *sets* of teams reaching each knockout round (not the pairings — see CONTEXT.md / ADR notes).
+- **`compare.ts`** — **Differenza** logic, two levels: `groupDiffs()`/`summarize()` compare predicted vs real scores on group matches directly; `roundSetDiffs()` compares the _sets_ of teams reaching each knockout round (not the pairings — see CONTEXT.md / ADR notes).
 - **`third-place-table.ts`** — FIFA's 495-combination third-place assignment table.
 - Tie-break is **reduced** (points → goal diff → goals for → alphabetical id), not the full FIFA combinatorics; best-thirds is a **linear ranking** of the 12 thirds, not the real combinatorics (ADR 0002).
 

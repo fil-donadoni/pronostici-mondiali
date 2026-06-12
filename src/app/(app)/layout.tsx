@@ -2,51 +2,53 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import {
-  loadMatches,
-  loadPredictions,
-  loadRealResults,
-  loadTeams,
+    loadMatches,
+    loadPredictions,
+    loadRealResults,
+    loadTeams,
 } from "@/lib/queries";
 import { AppShell } from "@/components/app-shell";
 
 export default async function AppLayout({
-  children,
+    children,
 }: {
-  children: React.ReactNode;
+    children: React.ReactNode;
 }) {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) redirect("/login");
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session) redirect("/login");
 
-  const [teams, matches, predictions, realResults] = await Promise.all([
-    loadTeams(),
-    loadMatches(),
-    loadPredictions(session.user.id),
-    loadRealResults(),
-  ]);
+    const [teams, matches, predictions, realResults] = await Promise.all([
+        loadTeams(),
+        loadMatches(),
+        loadPredictions(session.user.id),
+        loadRealResults(),
+    ]);
 
-  if (teams.length === 0) {
+    if (teams.length === 0) {
+        return (
+            <main className="flex-1 flex items-center justify-center p-8 text-center">
+                <div className="max-w-md space-y-2">
+                    <h1 className="text-xl font-semibold">Database vuoto</h1>
+                    <p className="text-muted-foreground text-sm">
+                        Nessuna squadra trovata. Esegui il seed:{" "}
+                        <code className="bg-muted px-1 rounded">
+                            npm run db:seed
+                        </code>
+                    </p>
+                </div>
+            </main>
+        );
+    }
+
     return (
-      <main className="flex-1 flex items-center justify-center p-8 text-center">
-        <div className="max-w-md space-y-2">
-          <h1 className="text-xl font-semibold">Database vuoto</h1>
-          <p className="text-muted-foreground text-sm">
-            Nessuna squadra trovata. Esegui il seed:{" "}
-            <code className="bg-muted px-1 rounded">npm run db:seed</code>
-          </p>
-        </div>
-      </main>
+        <AppShell
+            userName={session.user.name}
+            teams={teams}
+            matches={matches}
+            initialPredictions={predictions}
+            initialRealResults={realResults}
+        >
+            {children}
+        </AppShell>
     );
-  }
-
-  return (
-    <AppShell
-      userName={session.user.name}
-      teams={teams}
-      matches={matches}
-      initialPredictions={predictions}
-      initialRealResults={realResults}
-    >
-      {children}
-    </AppShell>
-  );
 }
