@@ -18,10 +18,13 @@ const isPooler = /pooler\.supabase\.com|pgbouncer=true/.test(connectionString);
 const client =
   globalForDb.client ??
   postgres(connectionString, {
-    max: isPooler ? 3 : 10,
+    max: 10,
     // pgbouncer (qualsiasi pooler Supabase) NON regge i prepared statement
     // named: query concorrenti via Promise.all si appendono -> disattiva.
     prepare: isPooler ? false : undefined,
+    // postgres-js fa una query `fetch_types` all'apertura di ogni connessione;
+    // con query concorrenti su pgbouncer manda in stallo il pool -> disattiva.
+    fetch_types: isPooler ? false : undefined,
     // Supabase pooler richiede TLS; fail-fast invece di appendersi per 60s.
     ssl: isPooler ? "require" : undefined,
     connect_timeout: 10,
