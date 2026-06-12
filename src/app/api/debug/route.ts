@@ -55,6 +55,15 @@ export async function GET() {
       loadPredictions(userId ?? "00000000"),
     ),
     await step("loadRealResults", 12000, loadRealResults),
+    // Come la home: 4 query in concorrenza (sospetto del 504).
+    await step("concurrent Promise.all", 12000, () =>
+      Promise.all([
+        loadTeams(),
+        loadMatches(),
+        loadPredictions(userId ?? "00000000"),
+        loadRealResults(),
+      ]),
+    ),
   ];
 
   // Conteggi al posto degli array per non gonfiare la risposta.
