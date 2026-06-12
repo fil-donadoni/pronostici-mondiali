@@ -55,8 +55,9 @@ function computeRows(): Map<string, number> {
     return r;
   };
   assign("FINAL");
-  // Finale 3°/4°: sotto alla colonna finale (perdenti delle semifinali).
-  if (row.has("FINAL")) row.set("THIRD", leaf - 0.5);
+  // Finale 3°/4°: poco sotto la finale (perdenti delle semifinali).
+  const finalRow = row.get("FINAL");
+  if (finalRow !== undefined) row.set("THIRD", finalRow + 2.5);
   return row;
 }
 
@@ -105,9 +106,8 @@ export function BracketTab({
       const cx = colLeft(childCol) + COL_W;
       const cy = centerY(f);
       const midX = m.id === "THIRD" ? cx + GAP / 2 : (cx + px) / 2;
-      const endX = m.id === "THIRD" ? px : px; // entra dal lato sinistro
       connectors.push({
-        d: `M ${cx} ${cy} H ${midX} V ${py} H ${endX}`,
+        d: `M ${cx} ${cy} H ${midX} V ${py} H ${px}`,
         dashed: m.id === "THIRD",
       });
     }
