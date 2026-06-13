@@ -15,7 +15,7 @@ Domain glossary and the exact Italian terms to use (Pronostico, Partita, Girone,
 ## Commands
 
 ```bash
-PORT=3100 npm run dev        # dev server (port pinned — see Local setup)
+PORT=3000 npm run dev        # dev server (port pinned — see Local setup)
 npm run build                # next build
 npm run lint                 # eslint
 npm run lint:fix             # eslint --fix
@@ -43,7 +43,7 @@ Enforced on commit by a **husky** `pre-commit` hook: `lint-staged` (prettier on 
 ### Local setup
 
 - Postgres runs via Docker on host port **5433** (5432 is taken by a homebrew postgres → IPv6 conflict). `DATABASE_URL=postgres://mondiali:mondiali@localhost:5433/mondiali`.
-- Dev server pinned to **3100**. `BETTER_AUTH_URL` and `NEXT_PUBLIC_APP_URL` must match the dev port or auth fails.
+- Dev server pinned to **3000**. `BETTER_AUTH_URL` and `NEXT_PUBLIC_APP_URL` must match the dev port or auth fails.
 - First run: `npx drizzle-kit push --force` then `npm run db:seed`.
 - Without `FOOTBALL_DATA_API_KEY`, seed uses 48 fallback nations and **Sync** generates deterministic demo results for the group matches. With the key it pulls real results from football-data.org.
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { LogOut, Menu, RefreshCw, Trophy, X } from "lucide-react";
@@ -54,6 +54,23 @@ function Shell({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const { userName, syncing, handleSync } = useApp();
     const [menuOpen, setMenuOpen] = useState(false);
+    const headerRef = useRef<HTMLElement>(null);
+
+    // Espone l'altezza reale dell'header come variabile CSS (--app-header-h),
+    // così gli elementi sticky delle pagine si ancorano subito sotto di esso.
+    useEffect(() => {
+        const el = headerRef.current;
+        if (!el) return;
+        const apply = () =>
+            document.documentElement.style.setProperty(
+                "--app-header-h",
+                `${el.offsetHeight}px`
+            );
+        apply();
+        const ro = new ResizeObserver(apply);
+        ro.observe(el);
+        return () => ro.disconnect();
+    }, []);
 
     async function handleLogout() {
         await signOut();
@@ -77,7 +94,10 @@ function Shell({ children }: { children: React.ReactNode }) {
 
     return (
         <div className="flex-1 flex flex-col">
-            <header className="sticky top-0 z-30 border-b border-border/60 bg-background/70 backdrop-blur-xl">
+            <header
+                ref={headerRef}
+                className="sticky top-0 z-30 border-b border-border/60 bg-background/70 backdrop-blur-xl"
+            >
                 <div className="mx-auto max-w-6xl w-full px-4 py-3 flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
                         {/* Hamburger: solo mobile */}
