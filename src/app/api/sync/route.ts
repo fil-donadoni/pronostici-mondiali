@@ -1,9 +1,11 @@
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
-import { inArray } from "drizzle-orm";
+import { asc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
-import { team, match, realResult } from "@/db/schema";
+import { team, match, realResult, user } from "@/db/schema";
 import { auth } from "@/lib/auth";
+
+const SYNC_INTERVAL_MS = 60 * 60 * 1000; // 1 ora
 
 export async function POST(req: Request) {
     const session = await auth.api.getSession({ headers: await headers() });
@@ -11,11 +13,43 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Non autenticato" }, { status: 401 });
     }
 
+    const userId = session.user.id;
+
+    // Il primo utente registrato (user 1) è esente dal rate limit.
+    const [firstUser] = await db
+        .select({ id: user.id })
+        .from(user)
+        .orderBy(asc(user.createdAt))
+        .limit(1);
+    const isFirstUser = firstUser?.id === userId;
+
+    if (!isFirstUser) {
+        const [me] = await db
+            .select({ lastSyncAt: user.lastSyncAt })
+            .from(user)
+            .where(eq(user.id, userId))
+            .limit(1);
+        const last = me?.lastSyncAt ? new Date(me.lastSyncAt).getTime() : 0;
+        const elapsed = Date.now() - last;
+        if (elapsed < SYNC_INTERVAL_MS) {
+            const retryAfter = Math.ceil((SYNC_INTERVAL_MS - elapsed) / 1000);
+            const minutes = Math.ceil(retryAfter / 60);
+            return NextResponse.json(
+                {
+                    error: `Puoi sincronizzare una volta all'ora. Riprova tra ${minutes} min.`,
+                    retryAfter,
+                },
+                { status: 429, headers: { "Retry-After": String(retryAfter) } }
+            );
+        }
+    }
+
     const body = (await req.json().catch(() => ({}))) as { demo?: boolean };
     const apiKey = process.env.FOOTBALL_DATA_API_KEY;
 
     if (!apiKey || body.demo) {
         const n = await syncDemo();
+        await touchLastSync(userId);
         return NextResponse.json({
             ok: true,
             mode: "demo",
@@ -28,6 +62,7 @@ export async function POST(req: Request) {
 
     try {
         const n = await syncReal(apiKey);
+        await touchLastSync(userId);
         return NextResponse.json({ ok: true, mode: "real", updated: n });
     } catch (e) {
         return NextResponse.json(
@@ -35,6 +70,13 @@ export async function POST(req: Request) {
             { status: 502 }
         );
     }
+}
+
+async function touchLastSync(userId: string): Promise<void> {
+    await db
+        .update(user)
+        .set({ lastSyncAt: new Date() })
+        .where(eq(user.id, userId));
 }
 
 /**

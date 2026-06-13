@@ -26,6 +26,8 @@ export const user = pgTable("user", {
         .$defaultFn(() => false)
         .notNull(),
     image: text("image"),
+    // Ultimo Sync eseguito dall'utente (rate limit 1/ora, tranne il primo utente).
+    lastSyncAt: timestamp("last_sync_at"),
     createdAt: timestamp("created_at")
         .$defaultFn(() => new Date())
         .notNull(),
