@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScoreInput } from "@/components/score-input";
+import { isMatchLocked } from "@/lib/match-lock";
 import { Shield } from "lucide-react";
 import {
     KNOCKOUT_MATCHES,
@@ -412,6 +413,7 @@ function MobileKnockoutCard({
         : (awaySlot ?? "—");
 
     const ready = homeId !== null && awayId !== null;
+    const locked = isMatchLocked(kickoff);
     const isDraw = home !== "" && away !== "" && home === away;
     const winnerId = resolved?.winnerId ?? null;
     const kd = fmtKickoff(kickoff);
@@ -421,6 +423,7 @@ function MobileKnockoutCard({
         a: number | "",
         penalty?: "home" | "away" | null
     ) {
+        if (locked) return;
         if (h === "" || a === "") return;
         savePrediction(matchId, {
             homeScore: h,
@@ -468,7 +471,7 @@ function MobileKnockoutCard({
                             name={homeName}
                             score={home}
                             isWinner={winnerId !== null && winnerId === homeId}
-                            disabled={!ready || dim}
+                            disabled={!ready || dim || locked}
                             onChange={(v) => {
                                 setHome(v);
                                 commit(v, away);
@@ -479,7 +482,7 @@ function MobileKnockoutCard({
                             name={awayName}
                             score={away}
                             isWinner={winnerId !== null && winnerId === awayId}
-                            disabled={!ready || dim}
+                            disabled={!ready || dim || locked}
                             onChange={(v) => {
                                 setAway(v);
                                 commit(home, v);
@@ -494,6 +497,7 @@ function MobileKnockoutCard({
                                 </span>
                                 <Button
                                     size="sm"
+                                    disabled={locked}
                                     variant={
                                         prediction?.penaltyWinner === "home"
                                             ? "default"
@@ -506,6 +510,7 @@ function MobileKnockoutCard({
                                 </Button>
                                 <Button
                                     size="sm"
+                                    disabled={locked}
                                     variant={
                                         prediction?.penaltyWinner === "away"
                                             ? "default"
@@ -574,6 +579,8 @@ function BracketTree({
         const m = matches.find((x) => x.id === id);
         return side === "home" ? m?.homeSlot : m?.awaySlot;
     };
+    const kickoffOf = (id: string) =>
+        matches.find((x) => x.id === id)?.kickoff ?? null;
 
     const colOf = (stage: Stage) =>
         stage === "THIRD" ? COLUMNS.indexOf("FINAL") : COLUMNS.indexOf(stage);
@@ -703,6 +710,7 @@ function BracketTree({
                             teamMap={teamMap}
                             homeSlot={slotLabel(m.id, "home")}
                             awaySlot={slotLabel(m.id, "away")}
+                            kickoff={kickoffOf(m.id)}
                             savePrediction={savePrediction}
                         />
                     </div>
@@ -731,6 +739,7 @@ function BracketTree({
                             teamMap={teamMap}
                             homeSlot={slotLabel("THIRD", "home")}
                             awaySlot={slotLabel("THIRD", "away")}
+                            kickoff={kickoffOf("THIRD")}
                             savePrediction={savePrediction}
                         />
                     </div>
@@ -747,6 +756,7 @@ function KnockoutCard({
     teamMap,
     homeSlot,
     awaySlot,
+    kickoff,
     savePrediction,
 }: {
     matchId: string;
@@ -755,6 +765,7 @@ function KnockoutCard({
     teamMap: Map<string, TeamInfo>;
     homeSlot?: string | null;
     awaySlot?: string | null;
+    kickoff?: string | null;
     savePrediction: (matchId: string, patch: PredictionPatch) => void;
 }) {
     const [home, setHome] = useState<number | "">(prediction?.homeScore ?? "");
@@ -782,6 +793,7 @@ function KnockoutCard({
         : (awaySlot ?? "—");
 
     const ready = homeId !== null && awayId !== null;
+    const locked = isMatchLocked(kickoff);
     const isDraw = home !== "" && away !== "" && home === away;
 
     function commit(
@@ -789,6 +801,7 @@ function KnockoutCard({
         a: number | "",
         penalty?: "home" | "away" | null
     ) {
+        if (locked) return;
         if (h === "" || a === "") return;
         savePrediction(matchId, {
             homeScore: h,
@@ -809,7 +822,7 @@ function KnockoutCard({
                     name={homeName}
                     score={home}
                     isWinner={winnerId !== null && winnerId === homeId}
-                    disabled={!ready}
+                    disabled={!ready || locked}
                     onChange={(v) => {
                         setHome(v);
                         commit(v, away);
@@ -820,7 +833,7 @@ function KnockoutCard({
                     name={awayName}
                     score={away}
                     isWinner={winnerId !== null && winnerId === awayId}
-                    disabled={!ready}
+                    disabled={!ready || locked}
                     onChange={(v) => {
                         setAway(v);
                         commit(home, v);
@@ -835,6 +848,7 @@ function KnockoutCard({
                         </p>
                         <Button
                             size="sm"
+                            disabled={locked}
                             variant={
                                 prediction?.penaltyWinner === "home"
                                     ? "default"
@@ -847,6 +861,7 @@ function KnockoutCard({
                         </Button>
                         <Button
                             size="sm"
+                            disabled={locked}
                             variant={
                                 prediction?.penaltyWinner === "away"
                                     ? "default"

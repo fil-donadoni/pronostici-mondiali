@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScoreInput } from "@/components/score-input";
+import { isMatchLocked } from "@/lib/match-lock";
 import { GROUP_CODES, type GroupCode } from "@/lib/tournament/structure";
 import type { StandingRow } from "@/lib/tournament/types";
 import type {
@@ -149,8 +150,10 @@ function GroupMatchRow({
 }) {
     const [home, setHome] = useState<number | "">(prediction?.homeScore ?? "");
     const [away, setAway] = useState<number | "">(prediction?.awayScore ?? "");
+    const locked = isMatchLocked(match.kickoff);
 
     function commit(h: number | "", a: number | "") {
+        if (locked) return;
         if (h === "" || a === "") return;
         savePrediction(match.id, { homeScore: h, awayScore: a });
     }
@@ -160,6 +163,7 @@ function GroupMatchRow({
             <span className="flex-1 text-right truncate">{homeName}</span>
             <ScoreInput
                 value={home}
+                disabled={locked}
                 ariaLabel={`${homeName} gol`}
                 onChange={(v) => {
                     setHome(v);
@@ -169,6 +173,7 @@ function GroupMatchRow({
             <span className="text-muted-foreground">-</span>
             <ScoreInput
                 value={away}
+                disabled={locked}
                 ariaLabel={`${awayName} gol`}
                 onChange={(v) => {
                     setAway(v);

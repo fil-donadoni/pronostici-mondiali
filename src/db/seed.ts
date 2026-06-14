@@ -4,6 +4,7 @@ import { team, match, realResult, prediction } from "./schema";
 import { FALLBACK_TEAMS } from "./seed-data";
 import { GROUP_CODES, KNOCKOUT_MATCHES } from "../lib/tournament/structure";
 import type { Slot } from "../lib/tournament/structure";
+import { GROUP_KICKOFFS, KNOCKOUT_KICKOFFS } from "./schedule-2026";
 
 // Ordine round-robin per un girone da 4 (indici 0..3): 6 partite.
 const RR_PAIRS: [number, number][] = [
@@ -77,17 +78,16 @@ async function seed() {
     console.log("→ Generazione 72 partite dei gironi…");
     const groupMatches: (typeof match.$inferInsert)[] = [];
     let matchNumber = 1;
-    // kickoff fittizio: 11 giugno 2026 + scaglionamento
-    const base = new Date("2026-06-11T18:00:00Z").getTime();
     for (const g of GROUP_CODES) {
         const gTeams = teams.filter((t) => t.group === g);
-        for (const [i, j] of RR_PAIRS) {
+        // kickoff reali FIFA: GROUP_KICKOFFS[g] è ordinato come RR_PAIRS.
+        RR_PAIRS.forEach(([i, j], rr) => {
             groupMatches.push({
                 id: `G-${matchNumber}`,
                 stage: "GROUP",
                 groupCode: g,
                 matchNumber,
-                kickoff: new Date(base + matchNumber * 3 * 60 * 60 * 1000),
+                kickoff: new Date(GROUP_KICKOFFS[g][rr]),
                 homeTeamId: gTeams[i].id,
                 awayTeamId: gTeams[j].id,
                 homeSlot: null,
@@ -95,21 +95,19 @@ async function seed() {
                 externalId: null,
             });
             matchNumber++;
-        }
+        });
     }
     await db.insert(match).values(groupMatches);
 
     console.log("→ Inserimento slot knockout (R32 → Finale)…");
-    const koBase = new Date("2026-06-28T18:00:00Z").getTime();
     await db.insert(match).values(
         KNOCKOUT_MATCHES.map((m) => ({
             id: m.id,
             stage: m.stage,
             groupCode: null,
             matchNumber: m.matchNumber,
-            kickoff: new Date(
-                koBase + (m.matchNumber - 72) * 24 * 60 * 60 * 1000
-            ),
+            // kickoff reali FIFA per matchNumber ufficiale (73..104).
+            kickoff: new Date(KNOCKOUT_KICKOFFS[m.matchNumber]),
             homeTeamId: null,
             awayTeamId: null,
             homeSlot: slotLabel(m.home),
