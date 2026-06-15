@@ -17,6 +17,7 @@ import type {
 const NAV = [
     { href: "/gironi", label: "Gironi" },
     { href: "/tabellone", label: "Tabellone" },
+    { href: "/tabellone-reale", label: "Tabellone reale" },
     { href: "/confronto", label: "Confronto" },
     { href: "/classifica", label: "Classifica" },
     { href: "/statistiche", label: "Statistiche" },

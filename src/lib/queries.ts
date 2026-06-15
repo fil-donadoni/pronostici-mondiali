@@ -55,6 +55,23 @@ export async function loadPredictions(userId: string): Promise<Prediction[]> {
     }));
 }
 
+/** Pronostici di Fase 2 (Tabellone reale) di un utente. */
+export async function loadPhase2Predictions(
+    userId: string
+): Promise<Prediction[]> {
+    const rows = await db
+        .select()
+        .from(prediction)
+        .where(and(eq(prediction.userId, userId), eq(prediction.phase, 2)));
+    return rows.map((p) => ({
+        matchId: p.matchId,
+        homeScore: p.homeScore,
+        awayScore: p.awayScore,
+        penaltyWinner: (p.penaltyWinner as "home" | "away" | null) ?? null,
+        updatedAt: p.updatedAt.toISOString(),
+    }));
+}
+
 export async function loadRealResults(): Promise<RealResult[]> {
     const rows = await db.select().from(realResult);
     return rows.map((r) => ({
