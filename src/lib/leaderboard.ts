@@ -22,6 +22,9 @@ export type LeaderboardPrediction = {
     homeScore: number;
     awayScore: number;
     penaltyWinner: "home" | "away" | null;
+    // Istante ISO (UTC) dell'ultima modifica: abilita il cap "ritardo" (1 punto
+    // max se salvato dopo il calcio d'inizio). Assente -> mai in ritardo.
+    updatedAt?: string;
 };
 
 /**
@@ -52,6 +55,7 @@ export function buildLeaderboard(
             homeScore: p.homeScore,
             awayScore: p.awayScore,
             penaltyWinner: p.penaltyWinner,
+            updatedAt: p.updatedAt,
         });
     }
 

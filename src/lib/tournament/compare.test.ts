@@ -134,6 +134,51 @@ describe("scoreDiffs", () => {
     });
 });
 
+describe("cap ritardo (updatedAt > kickoff)", () => {
+    const KICKOFF = "2026-06-11T19:00:00.000Z";
+    const match = (kickoff: string | null): MatchInfo => ({
+        ...groupMatch("G-1", "A", "ITA", "FRA", 1),
+        kickoff,
+    });
+    const predAt = (updatedAt: string | undefined) => ({
+        ...pred("G-1", 2, 1),
+        updatedAt,
+    });
+    const diffsFor = (kickoff: string | null, updatedAt: string | undefined) =>
+        groupDiffs(
+            [match(kickoff)],
+            new Map([["G-1", predAt(updatedAt)]]),
+            realMap(real("G-1", 2, 1))
+        );
+
+    it("esatto salvato DOPO il kickoff -> late, cap a 1 punto", () => {
+        const d = diffsFor(KICKOFF, "2026-06-13T11:00:00.000Z");
+        expect(d[0]).toMatchObject({ exactMatch: true, late: true });
+        const s = scoreDiffs(d);
+        expect(s.exactScores).toBe(0); // l'esatto non conta come esatto
+        expect(s.correctResults).toBe(1); // ma l'esito resta corretto
+        expect(s.points).toBe(POINTS.outcome); // 1, non 3
+    });
+
+    it("esatto salvato PRIMA del kickoff -> 3 punti pieni", () => {
+        const d = diffsFor(KICKOFF, "2026-06-11T18:59:59.000Z");
+        expect(d[0]).toMatchObject({ exactMatch: true, late: false });
+        expect(scoreDiffs(d).points).toBe(POINTS.exact);
+    });
+
+    it("senza updatedAt (stato ottimistico) -> mai late", () => {
+        const d = diffsFor(KICKOFF, undefined);
+        expect(d[0].late).toBe(false);
+        expect(scoreDiffs(d).points).toBe(POINTS.exact);
+    });
+
+    it("senza kickoff -> mai late", () => {
+        const d = diffsFor(null, "2026-06-13T11:00:00.000Z");
+        expect(d[0].late).toBe(false);
+        expect(scoreDiffs(d).points).toBe(POINTS.exact);
+    });
+});
+
 describe("roundSetDiffs", () => {
     it("calcola onlyPredicted / onlyReal e hasReal per turno", () => {
         const rounds = roundSetDiffs(

@@ -19,6 +19,8 @@ const NAV = [
     { href: "/tabellone", label: "Tabellone" },
     { href: "/confronto", label: "Confronto" },
     { href: "/classifica", label: "Classifica" },
+    { href: "/statistiche", label: "Statistiche" },
+    { href: "/profilo", label: "Profilo" },
 ];
 
 export function AppShell({

@@ -15,7 +15,17 @@ export type GroupDiff = {
     real: { home: number; away: number };
     exactMatch: boolean; // punteggio identico
     outcomeMatch: boolean; // stesso esito 1/X/2
+    // Pronostico salvato DOPO il calcio d'inizio (iscrizione a torneo iniziato,
+    // prima del blocco di validazione): il punteggio esatto NON vale 3 punti
+    // pieni ma è cappato a 1 in Classifica (vedi scoreDiffs).
+    late: boolean;
 };
+
+/** Modifica registrata dopo il calcio d'inizio: confronto sugli istanti UTC. */
+function isLate(updatedAt: string | undefined, kickoff: string | null) {
+    if (!updatedAt || !kickoff) return false;
+    return new Date(updatedAt).getTime() > new Date(kickoff).getTime();
+}
 
 /** Livello A: confronto diretto sulle partite dei gironi (stesse squadre). */
 export function groupDiffs(
@@ -40,6 +50,7 @@ export function groupDiffs(
             real: { home: r.homeScore, away: r.awayScore },
             exactMatch,
             outcomeMatch,
+            late: isLate(p.updatedAt, m.kickoff),
         });
     }
     return diffs;
@@ -88,6 +99,10 @@ export type CompareSummary = {
 /**
  * Punti per la Classifica giocatori: un punteggio esatto vale di più del solo
  * esito (1/X/2) corretto. Unica fonte della regola di punteggio.
+ *
+ * Cap "ritardo": un Pronostico salvato dopo il calcio d'inizio (`late`) vale al
+ * massimo `outcome` (1). Anche col punteggio esatto NON prende i 3 punti pieni
+ * — un esatto implica sempre l'esito corretto, quindi resta 1, mai 0.
  */
 export const POINTS = { exact: 3, outcome: 1 } as const;
 
@@ -107,7 +122,9 @@ export function scoreDiffs(diffs: GroupDiff[]): ScoreBreakdown {
     let exact = 0;
     let outcomeOnly = 0;
     for (const d of diffs) {
-        if (d.exactMatch) exact++;
+        // Cap ritardo: un esatto `late` non conta come esatto (3) ma come solo
+        // esito (1). Invariante: points = exact*3 + outcomeOnly*1.
+        if (d.exactMatch && !d.late) exact++;
         else if (d.outcomeMatch) outcomeOnly++;
     }
     return {

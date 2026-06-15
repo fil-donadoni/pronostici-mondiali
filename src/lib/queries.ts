@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { team, match, prediction, realResult, user } from "@/db/schema";
 import { buildLeaderboard, type LeaderboardEntry } from "@/lib/leaderboard";
+import { buildStatistiche, type Statistiche } from "@/lib/match-stats";
 import type {
     MatchInfo,
     Prediction,
@@ -86,5 +87,33 @@ export async function loadLeaderboard(): Promise<LeaderboardEntry[]> {
         })),
         reals,
         matches
+    );
+}
+
+/**
+ * Statistiche bizzarre cross-utente: carica i dati e delega a buildStatistiche.
+ * Visibile a tutti i loggati.
+ */
+export async function loadStatistiche(): Promise<Statistiche> {
+    const [users, allPreds, reals, matches, teams] = await Promise.all([
+        db.select({ id: user.id, name: user.name }).from(user),
+        db.select().from(prediction),
+        loadRealResults(),
+        loadMatches(),
+        loadTeams(),
+    ]);
+
+    return buildStatistiche(
+        users,
+        allPreds.map((p) => ({
+            userId: p.userId,
+            matchId: p.matchId,
+            homeScore: p.homeScore,
+            awayScore: p.awayScore,
+            penaltyWinner: (p.penaltyWinner as "home" | "away" | null) ?? null,
+        })),
+        reals,
+        matches,
+        teams
     );
 }

@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { Medal } from "lucide-react";
+import { Info, Medal } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { loadLeaderboard } from "@/lib/queries";
 import { POINTS } from "@/lib/tournament/compare";
@@ -25,6 +25,22 @@ export default async function ClassificaPage() {
 
     return (
         <div className="mx-auto max-w-3xl">
+            <div className="mb-4 flex gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm">
+                <Info className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                <div className="space-y-1">
+                    <p className="font-medium">Intervento regolamentare</p>
+                    <p className="text-muted-foreground">
+                        I pronostici inseriti o modificati{" "}
+                        <strong>dopo il calcio d&apos;inizio</strong> della
+                        partita (chi si è iscritto a torneo già iniziato)
+                        valgono al massimo <strong>1 punto</strong>: anche col
+                        punteggio esatto non assegnano i {POINTS.exact} punti
+                        pieni. La regola è retroattiva e già applicata a questa
+                        Classifica.
+                    </p>
+                </div>
+            </div>
+
             <Card>
                 <CardContent className="py-2">
                     <Table>
