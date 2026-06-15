@@ -1,11 +1,17 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { Info } from "lucide-react";
+import { Info, Medal } from "lucide-react";
 import { auth } from "@/lib/auth";
-import { loadFullLeaderboard } from "@/lib/queries";
-import { BONUS_WEIGHTS } from "@/lib/tournament/bonus";
+import { loadLeaderboard } from "@/lib/queries";
 import { Card, CardContent } from "@/components/ui/card";
-import { LeaderboardViews } from "@/components/leaderboard-views";
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
 
 export const metadata = { title: "Classifica — Mondiali 2026" };
 
@@ -13,7 +19,7 @@ export default async function ClassificaPage() {
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session) redirect("/login");
 
-    const entries = await loadFullLeaderboard();
+    const entries = await loadLeaderboard();
     const meId = session.user.id;
 
     return (
@@ -35,18 +41,87 @@ export default async function ClassificaPage() {
 
             <Card>
                 <CardContent className="py-2">
-                    <LeaderboardViews entries={entries} meId={meId} />
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="w-10 text-center">
+                                    #
+                                </TableHead>
+                                <TableHead>Giocatore</TableHead>
+                                <TableHead className="text-center">
+                                    Punti totali
+                                </TableHead>
+                                <TableHead className="text-center">
+                                    Punteggi esatti
+                                </TableHead>
+                                <TableHead className="text-center">
+                                    Risultati
+                                </TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {entries.map((e, i) => {
+                                const isMe = e.userId === meId;
+                                return (
+                                    <TableRow
+                                        key={e.userId}
+                                        data-state={
+                                            isMe ? "selected" : undefined
+                                        }
+                                    >
+                                        <TableCell className="text-center">
+                                            <RankBadge rank={i + 1} />
+                                        </TableCell>
+                                        <TableCell className="font-medium">
+                                            {e.name}
+                                            {isMe && (
+                                                <span className="ml-2 text-xs text-muted-foreground">
+                                                    (tu)
+                                                </span>
+                                            )}
+                                        </TableCell>
+                                        <TableCell className="text-center tabular-nums font-semibold">
+                                            {e.points}
+                                        </TableCell>
+                                        <TableCell className="text-center tabular-nums">
+                                            {e.exactScores}
+                                        </TableCell>
+                                        <TableCell className="text-center tabular-nums">
+                                            {e.correctResults}
+                                        </TableCell>
+                                    </TableRow>
+                                );
+                            })}
+                        </TableBody>
+                    </Table>
+
+                    {entries.length === 0 && (
+                        <p className="py-10 text-center text-muted-foreground">
+                            Nessun giocatore ancora.
+                        </p>
+                    )}
                 </CardContent>
             </Card>
 
             <p className="mt-4 text-xs text-muted-foreground text-center">
-                <strong>Gironi</strong>: esatto 3 · esito 1. ·{" "}
-                <strong>Tabellone</strong> (Fase 2): esatto 3 · chi-passa 1. ·{" "}
-                <strong>Bonus</strong> (preveggenza Fase 1): {BONUS_WEIGHTS.R32}
-                /{BONUS_WEIGHTS.R16}/{BONUS_WEIGHTS.QF}/{BONUS_WEIGHTS.SF}/
-                {BONUS_WEIGHTS.FINAL}/{BONUS_WEIGHTS.CHAMPION} per turno
-                raggiunto. · <strong>Totale</strong> = somma delle tre.
+                <strong>Gironi</strong>: punteggio esatto 3 punti · esito
+                (1/X/2) azzeccato 1 punto.
             </p>
         </div>
     );
+}
+
+function RankBadge({ rank }: { rank: number }) {
+    if (rank > 3) {
+        return (
+            <span className="text-muted-foreground tabular-nums">{rank}</span>
+        );
+    }
+    const color =
+        rank === 1
+            ? "text-amber-400"
+            : rank === 2
+              ? "text-slate-300"
+              : "text-amber-700";
+    return <Medal className={`mx-auto size-5 ${color}`} strokeWidth={2.5} />;
 }

@@ -224,8 +224,8 @@ export function buildStatistiche(
             }))
             .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
             .slice(0, limit);
-    const topChampions = toTally(champCount, 5);
-    const topFinalists = toTally(finalistCount, 5);
+    const topChampions = toTally(champCount, 10);
+    const topFinalists = toTally(finalistCount, 10);
 
     const stats: MatchStat[] = [];
     const nearMisses: NearMiss[] = [];
