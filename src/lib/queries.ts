@@ -146,6 +146,9 @@ export async function loadStatistiche(): Promise<Statistiche> {
             homeScore: p.homeScore,
             awayScore: p.awayScore,
             penaltyWinner: (p.penaltyWinner as "home" | "away" | null) ?? null,
+            // Abilita il cap "ritardo": un esatto salvato dopo il calcio
+            // d'inizio non conta per l'oracolo (vedi buildLeaderboard).
+            updatedAt: p.updatedAt.toISOString(),
         })),
         reals,
         matches,

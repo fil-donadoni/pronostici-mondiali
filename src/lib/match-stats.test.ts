@@ -16,13 +16,18 @@ const users: LeaderboardUser[] = [
     { id: "u3", name: "Carlo" },
 ];
 
-function match(id: string, home: string, away: string): MatchInfo {
+function match(
+    id: string,
+    home: string,
+    away: string,
+    kickoff: string | null = null
+): MatchInfo {
     return {
         id,
         stage: "GROUP",
         groupCode: "A",
         matchNumber: 1,
-        kickoff: null,
+        kickoff,
         homeTeamId: home,
         awayTeamId: away,
         homeSlot: null,
@@ -95,6 +100,45 @@ describe("buildStatistiche", () => {
         ).toBe(true);
     });
 
+    it("il cambio esito (scarto 1) sta sopra lo stesso esito (scarto 1)", () => {
+        // G-1 7-1 (esito 1): 7-0 resta esito 1. G-2 1-1 (esito X): 2-1 ribalta.
+        const preds = [
+            pred("u1", "G-1", 7, 0), // scarto 1, stesso esito
+            pred("u2", "G-2", 2, 1), // scarto 1, cambio esito (X -> 1)
+        ];
+        const s = buildStatistiche(users, preds, reals, matches, teams);
+        expect(s.nearMisses[0]).toMatchObject({
+            matchId: "G-2",
+            outcomeMatch: false,
+        });
+        expect(s.nearMisses[1]).toMatchObject({
+            matchId: "G-1",
+            outcomeMatch: true,
+        });
+    });
+
+    it("a parità di cambio esito, prima la partita con più gol totali", () => {
+        // Due cambi esito da pareggio: G-1 (4 gol) sopra G-2 (2 gol).
+        const r = [real("G-1", 2, 2), real("G-2", 1, 1)];
+        const preds = [
+            pred("u1", "G-2", 2, 1), // cambio esito, 2 gol totali reali
+            pred("u2", "G-1", 3, 2), // cambio esito, 4 gol totali reali
+        ];
+        const s = buildStatistiche(users, preds, r, matches, teams);
+        expect(s.nearMisses.map((n) => n.matchId)).toEqual(["G-1", "G-2"]);
+    });
+
+    it("esclude i pronostici con scarto maggiore di 1", () => {
+        const r = [real("G-1", 4, 2)];
+        const preds = [
+            pred("u1", "G-1", 5, 1), // scarto 2 -> escluso
+            pred("u2", "G-1", 3, 2), // scarto 1 -> incluso
+        ];
+        const s = buildStatistiche(users, preds, r, matches, teams);
+        expect(s.nearMisses).toHaveLength(1);
+        expect(s.nearMisses[0]).toMatchObject({ userName: "Bruno" });
+    });
+
     it("la meno azzeccata ha la quota esiti più bassa", () => {
         const preds = [
             // G-1: tutti azzeccano l'esito
@@ -130,6 +174,45 @@ describe("buildStatistiche", () => {
         expect(s.mostExact).toBeNull();
         expect(s.mostOutcome).toBeNull();
         expect(s.leastGuessed).toBeNull();
+        expect(s.oracle).toBeNull();
+        expect(s.gambler).toBeNull();
         expect(s.matchesCompared).toBe(0);
+    });
+
+    it("oracolo = più esatti, gambler = quota esiti più bassa", () => {
+        const preds = [
+            // Anna: 2 esatti su 2 -> oracolo
+            pred("u1", "G-1", 7, 1),
+            pred("u1", "G-2", 1, 1),
+            // Bruno: 0 esatti, 1 esito su 2 (50%)
+            pred("u2", "G-1", 1, 0),
+            pred("u2", "G-2", 2, 0),
+            // Carlo: 0 esatti, 0 esiti su 2 (0%) -> gambler
+            pred("u3", "G-1", 0, 1),
+            pred("u3", "G-2", 2, 0),
+        ];
+        const s = buildStatistiche(users, preds, reals, matches, teams);
+        expect(s.oracle).toMatchObject({ name: "Anna", exactScores: 2 });
+        expect(s.gambler).toMatchObject({
+            name: "Carlo",
+            correctResults: 0,
+            played: 2,
+            rate: 0,
+        });
+    });
+
+    it("oracolo esclude gli esatti salvati dopo il calcio d'inizio", () => {
+        const kickoff = "2026-06-15T18:00:00.000Z";
+        const m = [match("G-1", "GER", "BRA", kickoff)];
+        const r = [real("G-1", 7, 1)];
+        const preds: LeaderboardPrediction[] = [
+            {
+                ...pred("u1", "G-1", 7, 1), // esatto ma salvato in ritardo
+                updatedAt: "2026-06-15T19:00:00.000Z",
+            },
+        ];
+        const s = buildStatistiche(users, preds, r, m, teams);
+        // L'esatto "in ritardo" non conta: nessun oracolo con esatti.
+        expect(s.oracle?.exactScores ?? 0).toBe(0);
     });
 });
