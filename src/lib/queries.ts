@@ -2,6 +2,10 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { team, match, prediction, realResult, user } from "@/db/schema";
 import { buildLeaderboard, type LeaderboardEntry } from "@/lib/leaderboard";
+import {
+    buildFullLeaderboard,
+    type FullLeaderboardEntry,
+} from "@/lib/full-leaderboard";
 import { buildStatistiche, type Statistiche } from "@/lib/match-stats";
 import type {
     MatchInfo,
@@ -88,6 +92,36 @@ export async function loadLeaderboard(): Promise<LeaderboardEntry[]> {
         })),
         reals,
         matches
+    );
+}
+
+/**
+ * Classifica completa a 4 componenti (Gironi/Tabellone/Bonus/Totale).
+ * Carica ENTRAMBE le fasi dei Pronostici (vedi docs/adr/0003).
+ */
+export async function loadFullLeaderboard(): Promise<FullLeaderboardEntry[]> {
+    const [users, allPreds, reals, matches, teams] = await Promise.all([
+        db.select({ id: user.id, name: user.name }).from(user),
+        db.select().from(prediction),
+        loadRealResults(),
+        loadMatches(),
+        loadTeams(),
+    ]);
+
+    return buildFullLeaderboard(
+        users,
+        allPreds.map((p) => ({
+            userId: p.userId,
+            matchId: p.matchId,
+            phase: p.phase,
+            homeScore: p.homeScore,
+            awayScore: p.awayScore,
+            penaltyWinner: (p.penaltyWinner as "home" | "away" | null) ?? null,
+            updatedAt: p.updatedAt.toISOString(),
+        })),
+        reals,
+        matches,
+        teams
     );
 }
 
