@@ -20,6 +20,7 @@ const NAV = [
     { href: "/confronto", label: "Confronto" },
     { href: "/classifica", label: "Classifica" },
     { href: "/statistiche", label: "Statistiche" },
+    { href: "/regolamento", label: "Regolamento" },
     { href: "/profilo", label: "Profilo" },
 ];
 
