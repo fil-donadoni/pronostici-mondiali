@@ -40,6 +40,15 @@ export default async function RegolamentoPage() {
                         : dopo non è più modificabile. È la fase che genera il
                         Bonus.
                     </p>
+                    <p>
+                        <strong>Finestra di grazia sul Tabellone:</strong> se
+                        hai già compilato <strong>tutti i Gironi</strong>, puoi
+                        continuare a modificare il{" "}
+                        <strong>Tabellone previsto</strong> (solo quello, non i
+                        Gironi) fino alla <strong>fine del 20/06/2026</strong>,
+                        anche a torneo iniziato. Serve a chi si è iscritto tardi
+                        per completare il bracket prima degli scontri diretti.
+                    </p>
                 </CardContent>
             </Card>
 
