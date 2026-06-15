@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScoreInput } from "@/components/score-input";
-import { isMatchLocked } from "@/lib/match-lock";
+import { isMatchLocked, isPhase1Locked } from "@/lib/match-lock";
 import { GROUP_CODES, type GroupCode } from "@/lib/tournament/structure";
 import type { StandingRow } from "@/lib/tournament/types";
 import type {
@@ -28,6 +28,8 @@ export function GroupsTab({
     standings: Map<GroupCode, StandingRow[]>;
     savePrediction: (matchId: string, patch: PredictionPatch) => void;
 }) {
+    // A torneo iniziato la Fase 1 è congelata: editing in sola lettura.
+    const phase1Locked = isPhase1Locked(matches.map((m) => m.kickoff));
     return (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {GROUP_CODES.map((g) => (
@@ -41,6 +43,7 @@ export function GroupsTab({
                     predictions={predictions}
                     rows={standings.get(g) ?? []}
                     savePrediction={savePrediction}
+                    phase1Locked={phase1Locked}
                 />
             ))}
         </div>
@@ -54,6 +57,7 @@ function GroupCard({
     predictions,
     rows,
     savePrediction,
+    phase1Locked,
 }: {
     group: GroupCode;
     teamMap: Map<string, TeamInfo>;
@@ -61,6 +65,7 @@ function GroupCard({
     predictions: Map<string, Prediction>;
     rows: StandingRow[];
     savePrediction: (matchId: string, patch: PredictionPatch) => void;
+    phase1Locked: boolean;
 }) {
     const name = (id: string | null) =>
         id ? (teamMap.get(id)?.name ?? id) : "—";
@@ -116,6 +121,7 @@ function GroupCard({
                             awayName={name(m.awayTeamId)}
                             prediction={predictions.get(m.id)}
                             savePrediction={savePrediction}
+                            phase1Locked={phase1Locked}
                         />
                     ))}
                 </div>
@@ -141,16 +147,18 @@ function GroupMatchRow({
     awayName,
     prediction,
     savePrediction,
+    phase1Locked,
 }: {
     match: MatchInfo;
     homeName: string;
     awayName: string;
     prediction?: Prediction;
     savePrediction: (matchId: string, patch: PredictionPatch) => void;
+    phase1Locked: boolean;
 }) {
     const [home, setHome] = useState<number | "">(prediction?.homeScore ?? "");
     const [away, setAway] = useState<number | "">(prediction?.awayScore ?? "");
-    const locked = isMatchLocked(match.kickoff);
+    const locked = phase1Locked || isMatchLocked(match.kickoff);
 
     function commit(h: number | "", a: number | "") {
         if (locked) return;
