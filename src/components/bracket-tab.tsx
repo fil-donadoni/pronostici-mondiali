@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScoreInput } from "@/components/score-input";
-import { isMatchLocked } from "@/lib/match-lock";
+import { isMatchLocked, isPhase1Locked } from "@/lib/match-lock";
 import { Shield } from "lucide-react";
 import {
     KNOCKOUT_MATCHES,
@@ -102,8 +102,13 @@ type BracketProps = {
     savePrediction: (matchId: string, patch: PredictionPatch) => void;
 };
 
+// Le viste interne ricevono anche lo stato di freeze della Fase 1.
+type BracketViewProps = BracketProps & { phase1Locked: boolean };
+
 export function BracketTab(props: BracketProps) {
     const champ = props.bracket.get("FINAL")?.winnerId;
+    // A torneo iniziato il bracket previsto (Fase 1) è congelato (ADR 0003).
+    const phase1Locked = isPhase1Locked(props.matches.map((m) => m.kickoff));
 
     return (
         <div className="space-y-4">
@@ -121,10 +126,10 @@ export function BracketTab(props: BracketProps) {
             )}
 
             {/* Mobile: pager a un turno per schermata, con tab e snap. */}
-            <BracketPager {...props} />
+            <BracketPager {...props} phase1Locked={phase1Locked} />
 
             {/* Desktop: albero completo con connettori. */}
-            <BracketTree {...props} />
+            <BracketTree {...props} phase1Locked={phase1Locked} />
         </div>
     );
 }
@@ -171,7 +176,8 @@ function BracketPager({
     predictions,
     bracket,
     savePrediction,
-}: BracketProps) {
+    phase1Locked,
+}: BracketViewProps) {
     const slotLabel = (id: string, side: "home" | "away") => {
         const m = matches.find((x) => x.id === id);
         return side === "home" ? m?.homeSlot : m?.awaySlot;
@@ -355,6 +361,7 @@ function BracketPager({
                                     }
                                     dim={i !== activeIndex}
                                     savePrediction={savePrediction}
+                                    phase1Locked={phase1Locked}
                                 />
                             </div>
                         );
@@ -376,6 +383,7 @@ function MobileKnockoutCard({
     topNote,
     dim,
     savePrediction,
+    phase1Locked,
 }: {
     matchId: string;
     resolved?: ResolvedKnockout;
@@ -387,6 +395,7 @@ function MobileKnockoutCard({
     topNote?: string;
     dim: boolean;
     savePrediction: (matchId: string, patch: PredictionPatch) => void;
+    phase1Locked: boolean;
 }) {
     const [home, setHome] = useState<number | "">(prediction?.homeScore ?? "");
     const [away, setAway] = useState<number | "">(prediction?.awayScore ?? "");
@@ -413,7 +422,7 @@ function MobileKnockoutCard({
         : (awaySlot ?? "—");
 
     const ready = homeId !== null && awayId !== null;
-    const locked = isMatchLocked(kickoff);
+    const locked = phase1Locked || isMatchLocked(kickoff);
     const isDraw = home !== "" && away !== "" && home === away;
     const winnerId = resolved?.winnerId ?? null;
     const kd = fmtKickoff(kickoff);
@@ -574,7 +583,8 @@ function BracketTree({
     predictions,
     bracket,
     savePrediction,
-}: BracketProps) {
+    phase1Locked,
+}: BracketViewProps) {
     const slotLabel = (id: string, side: "home" | "away") => {
         const m = matches.find((x) => x.id === id);
         return side === "home" ? m?.homeSlot : m?.awaySlot;
@@ -712,6 +722,7 @@ function BracketTree({
                             awaySlot={slotLabel(m.id, "away")}
                             kickoff={kickoffOf(m.id)}
                             savePrediction={savePrediction}
+                            phase1Locked={phase1Locked}
                         />
                     </div>
                 ))}
@@ -741,6 +752,7 @@ function BracketTree({
                             awaySlot={slotLabel("THIRD", "away")}
                             kickoff={kickoffOf("THIRD")}
                             savePrediction={savePrediction}
+                            phase1Locked={phase1Locked}
                         />
                     </div>
                 )}
@@ -758,6 +770,7 @@ function KnockoutCard({
     awaySlot,
     kickoff,
     savePrediction,
+    phase1Locked,
 }: {
     matchId: string;
     resolved?: ResolvedKnockout;
@@ -767,6 +780,7 @@ function KnockoutCard({
     awaySlot?: string | null;
     kickoff?: string | null;
     savePrediction: (matchId: string, patch: PredictionPatch) => void;
+    phase1Locked: boolean;
 }) {
     const [home, setHome] = useState<number | "">(prediction?.homeScore ?? "");
     const [away, setAway] = useState<number | "">(prediction?.awayScore ?? "");
@@ -793,7 +807,7 @@ function KnockoutCard({
         : (awaySlot ?? "—");
 
     const ready = homeId !== null && awayId !== null;
-    const locked = isMatchLocked(kickoff);
+    const locked = phase1Locked || isMatchLocked(kickoff);
     const isDraw = home !== "" && away !== "" && home === away;
 
     function commit(

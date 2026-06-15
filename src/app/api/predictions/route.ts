@@ -5,7 +5,7 @@ import { z } from "zod";
 import { db } from "@/db";
 import { match, prediction } from "@/db/schema";
 import { auth } from "@/lib/auth";
-import { isMatchLocked } from "@/lib/match-lock";
+import { isMatchLocked, isPhase1Locked } from "@/lib/match-lock";
 
 const bodySchema = z.object({
     matchId: z.string().min(1),
@@ -30,6 +30,16 @@ export async function PUT(req: Request) {
 
     const { matchId, homeScore, awayScore, penaltyWinner } = parsed.data;
     const userId = session.user.id;
+
+    // Freeze globale: a torneo iniziato la Fase 1 (Gironi + bracket previsto)
+    // è congelata, così il Bonus resta una previsione pre-torneo (ADR 0003).
+    const allKickoffs = await db.select({ kickoff: match.kickoff }).from(match);
+    if (isPhase1Locked(allKickoffs.map((r) => r.kickoff))) {
+        return NextResponse.json(
+            { error: "Torneo iniziato: Fase 1 bloccata" },
+            { status: 403 }
+        );
+    }
 
     // Lock sul calcio d'inizio: una Partita iniziata non è più pronosticabile.
     const [m] = await db
