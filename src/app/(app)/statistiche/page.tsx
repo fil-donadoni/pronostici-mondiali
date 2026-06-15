@@ -16,7 +16,7 @@ import type {
     MatchStat,
     NearMiss,
     PlayerAward,
-    TopChampion,
+    TeamTally,
 } from "@/lib/match-stats";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -91,23 +91,39 @@ export default async function StatistichePage() {
                 />
             </div>
 
-            {stats.topChampions.length > 0 && (
-                <ChampionsCard champions={stats.topChampions} />
+            {(stats.topChampions.length > 0 ||
+                stats.topFinalists.length > 0) && (
+                <div className="grid gap-4 sm:grid-cols-2">
+                    <TallyCard
+                        title="Campioni più pronosticati"
+                        subtitle="Squadra data vincitrice del Mondiale (Fase 1)"
+                        items={stats.topChampions}
+                        total={stats.championsTotal}
+                    />
+                    <TallyCard
+                        title="Finaliste più pronosticate"
+                        subtitle="Squadra data in finale (Fase 1)"
+                        items={stats.topFinalists}
+                        total={stats.finalistsTotal}
+                    />
+                </div>
             )}
 
-            <NearMissCard
-                title="Quasi! Ribaltati per un gol"
-                subtitle="Un solo gol ha cambiato l'esito. 3 punti persi!"
-                iconClassName="text-rose-500"
-                rows={stats.nearMisses.filter((n) => !n.outcomeMatch)}
-            />
+            <div className="grid gap-4 lg:grid-cols-2">
+                <NearMissCard
+                    title="Quasi! Ribaltati per un gol"
+                    subtitle="Un solo gol ha cambiato l'esito. 3 punti persi!"
+                    iconClassName="text-rose-500"
+                    rows={stats.nearMisses.filter((n) => !n.outcomeMatch)}
+                />
 
-            <NearMissCard
-                title="Quasi! Esito giusto, punteggio no"
-                subtitle="Esito azzeccato, a un solo gol dal punteggio esatto."
-                iconClassName="text-orange-500"
-                rows={stats.nearMisses.filter((n) => n.outcomeMatch)}
-            />
+                <NearMissCard
+                    title="Quasi! Esito giusto, punteggio no"
+                    subtitle="Esito azzeccato, a un solo gol dal punteggio esatto."
+                    iconClassName="text-orange-500"
+                    rows={stats.nearMisses.filter((n) => n.outcomeMatch)}
+                />
+            </div>
 
             <p className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
                 <Info className="size-3.5" />
@@ -118,41 +134,49 @@ export default async function StatistichePage() {
     );
 }
 
-function ChampionsCard({ champions }: { champions: TopChampion[] }) {
-    const max = champions[0]?.count ?? 1;
+function TallyCard({
+    title,
+    subtitle,
+    items,
+    total,
+}: {
+    title: string;
+    subtitle: string;
+    items: TeamTally[];
+    total: number;
+}) {
     return (
         <Card>
             <CardContent className="space-y-3 py-4">
                 <div className="flex items-center justify-center gap-2 font-semibold">
                     <Crown className="size-5 text-amber-500" />
-                    Campioni più pronosticati
+                    {title}
                 </div>
                 <p className="text-center text-xs text-muted-foreground">
-                    Le 5 squadre date campione del mondo dal Tabellone di Fase 1
+                    {subtitle}
                 </p>
-                <div className="space-y-2 pt-1">
-                    {champions.map((c, i) => (
-                        <div key={c.teamId} className="flex items-center gap-3">
-                            <span className="w-4 text-center text-sm font-semibold tabular-nums text-muted-foreground">
-                                {i + 1}
-                            </span>
-                            <span className="w-28 truncate text-sm font-medium">
-                                {c.name}
-                            </span>
-                            <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
-                                <div
-                                    className="h-full rounded-full bg-amber-500"
-                                    style={{
-                                        width: `${(c.count / max) * 100}%`,
-                                    }}
-                                />
+                {items.length === 0 ? (
+                    <p className="py-4 text-center text-muted-foreground">—</p>
+                ) : (
+                    <div className="space-y-2 pt-1">
+                        {items.map((c, i) => (
+                            <div
+                                key={c.teamId}
+                                className="flex items-center gap-3"
+                            >
+                                <span className="w-4 text-center text-sm font-semibold tabular-nums text-muted-foreground">
+                                    {i + 1}
+                                </span>
+                                <span className="w-28 flex-1 truncate text-sm font-medium">
+                                    {c.name}
+                                </span>
+                                <span className="text-sm tabular-nums text-muted-foreground">
+                                    {c.count}/{total}
+                                </span>
                             </div>
-                            <span className="w-6 text-right text-sm tabular-nums">
-                                {c.count}
-                            </span>
-                        </div>
-                    ))}
-                </div>
+                        ))}
+                    </div>
+                )}
             </CardContent>
         </Card>
     );
@@ -248,8 +272,8 @@ function NearMissCard({
                                     <TableCell className="font-medium">
                                         {n.userName}
                                     </TableCell>
-                                    <TableCell className="text-muted-foreground">
-                                        {n.label}
+                                    <TableCell className="text-muted-foreground tabular-nums">
+                                        {n.shortLabel}
                                     </TableCell>
                                     <TableCell className="text-center tabular-nums">
                                         {n.predicted.home}-{n.predicted.away}

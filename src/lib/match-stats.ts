@@ -40,6 +40,8 @@ export type NearMiss = {
     userName: string;
     matchId: string;
     label: string;
+    /** Etichetta corta con le sigle squadra, es. "BRA-MAR". */
+    shortLabel: string;
     predicted: { home: number; away: number };
     real: { home: number; away: number };
     /** Scarto: |ph-rh| + |pa-ra|. Solo gli scarti 1 sono "quasi". */
@@ -64,8 +66,8 @@ export type PlayerAward = {
     rate: number;
 };
 
-/** Squadra prevista campione del mondo e da quanti giocatori. */
-export type TopChampion = { teamId: string; name: string; count: number };
+/** Squadra prevista (campione o finalista) e da quanti giocatori. */
+export type TeamTally = { teamId: string; name: string; count: number };
 
 export type Statistiche = {
     /** L'oracolo: giocatore con più punteggi esatti azzeccati. */
@@ -80,8 +82,14 @@ export type Statistiche = {
     leastGuessed: MatchStat | null;
     /** Pronostici sbagliati di un solo gol; prima i cambi esito spettacolari. */
     nearMisses: NearMiss[];
-    /** Le 5 squadre più pronosticate come campione del mondo (Fase 1). */
-    topChampions: TopChampion[];
+    /** Le 5 squadre più pronosticate campione del mondo (Fase 1). */
+    topChampions: TeamTally[];
+    /** Giocatori con un campione previsto (denominatore per topChampions). */
+    championsTotal: number;
+    /** Le 5 squadre più pronosticate finaliste (Fase 1). */
+    topFinalists: TeamTally[];
+    /** Giocatori con una Finale prevista (denominatore per topFinalists). */
+    finalistsTotal: number;
     /** Numero di partite dei gironi con almeno un confronto. */
     matchesCompared: number;
 };
@@ -185,21 +193,39 @@ export function buildStatistiche(
         });
     }
     const champCount = new Map<string, number>();
+    const finalistCount = new Map<string, number>();
+    let championsTotal = 0;
+    let finalistsTotal = 0;
     for (const preds of byUserPreds.values()) {
-        const champ = resolveBracket(
+        const final = resolveBracket(
             computeStandings(teams, matches, preds),
             preds
-        ).get("FINAL")?.winnerId;
-        if (champ) champCount.set(champ, (champCount.get(champ) ?? 0) + 1);
+        ).get("FINAL");
+        // Finalisti: entrambe le squadre della Finale prevista note.
+        if (final?.homeTeamId && final.awayTeamId) {
+            finalistsTotal++;
+            for (const id of [final.homeTeamId, final.awayTeamId]) {
+                finalistCount.set(id, (finalistCount.get(id) ?? 0) + 1);
+            }
+        }
+        // Campione: vincente della Finale previsto.
+        const champ = final?.winnerId;
+        if (champ) {
+            championsTotal++;
+            champCount.set(champ, (champCount.get(champ) ?? 0) + 1);
+        }
     }
-    const topChampions: TopChampion[] = [...champCount.entries()]
-        .map(([teamId, count]) => ({
-            teamId,
-            name: names.get(teamId) ?? teamId,
-            count,
-        }))
-        .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
-        .slice(0, 5);
+    const toTally = (counts: Map<string, number>, limit: number): TeamTally[] =>
+        [...counts.entries()]
+            .map(([teamId, count]) => ({
+                teamId,
+                name: names.get(teamId) ?? teamId,
+                count,
+            }))
+            .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+            .slice(0, limit);
+    const topChampions = toTally(champCount, 5);
+    const topFinalists = toTally(finalistCount, 5);
 
     const stats: MatchStat[] = [];
     const nearMisses: NearMiss[] = [];
@@ -207,6 +233,9 @@ export function buildStatistiche(
     for (const m of groupMatches) {
         const r = realMap.get(m.id)!;
         const label = teamLabel(m, r, names);
+        const shortLabel = `${m.homeTeamId ?? r.homeTeamId ?? "?"}-${
+            m.awayTeamId ?? r.awayTeamId ?? "?"
+        }`;
         const realOutcome = outcome(r.homeScore, r.awayScore);
         let total = 0;
         let exactCount = 0;
@@ -230,6 +259,7 @@ export function buildStatistiche(
                     userName: userNames.get(p.userId) ?? "?",
                     matchId: m.id,
                     label,
+                    shortLabel,
                     predicted: { home: p.homeScore, away: p.awayScore },
                     real: { home: r.homeScore, away: r.awayScore },
                     distance,
@@ -303,6 +333,9 @@ export function buildStatistiche(
         leastGuessed,
         nearMisses: [...flips, ...kept],
         topChampions,
+        championsTotal,
+        topFinalists,
+        finalistsTotal,
         matchesCompared: withPreds.length,
     };
 }
