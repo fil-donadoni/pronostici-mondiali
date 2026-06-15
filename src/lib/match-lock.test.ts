@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { isGroupStageOver, isMatchLocked, isPhase1Locked } from "./match-lock";
+import {
+    allGroupsFilled,
+    BRACKET_GRACE_DEADLINE,
+    isBracketPhase1Locked,
+    isGroupStageOver,
+    isMatchLocked,
+    isPhase1Locked,
+} from "./match-lock";
 
 describe("isMatchLocked", () => {
     const now = new Date("2026-06-13T12:00:00Z");
@@ -94,6 +101,59 @@ describe("isGroupStageOver", () => {
         const after = new Date("2026-06-27T22:30:00Z");
         expect(isGroupStageOver(["2026-06-25T18:00:00Z", last], after)).toBe(
             true
+        );
+    });
+});
+
+describe("allGroupsFilled", () => {
+    const groupIds = ["G-1", "G-2", "G-3"];
+
+    it("false se manca anche solo un Girone", () => {
+        expect(allGroupsFilled(groupIds, new Set(["G-1", "G-2"]))).toBe(false);
+    });
+
+    it("true se tutti i Gironi hanno un Pronostico", () => {
+        expect(
+            allGroupsFilled(groupIds, new Set(["G-1", "G-2", "G-3", "FINAL"]))
+        ).toBe(true);
+    });
+
+    it("false se non ci sono Gironi da controllare", () => {
+        expect(allGroupsFilled([], new Set(["G-1"]))).toBe(false);
+    });
+});
+
+describe("isBracketPhase1Locked", () => {
+    // torneo già iniziato: il primo kickoff è nel passato
+    const kickoffs = ["2026-06-11T16:00:00Z", "2026-07-19T19:00:00Z"];
+    const beforeDeadline = new Date("2026-06-15T12:00:00Z");
+    const afterDeadline = new Date("2026-06-21T12:00:00Z");
+
+    it("sblocca il bracket entro la scadenza se i Gironi sono completi", () => {
+        expect(isBracketPhase1Locked(kickoffs, true, beforeDeadline)).toBe(
+            false
+        );
+    });
+
+    it("resta bloccato se i Gironi non sono completi", () => {
+        expect(isBracketPhase1Locked(kickoffs, false, beforeDeadline)).toBe(
+            true
+        );
+    });
+
+    it("resta bloccato dopo la scadenza anche con Gironi completi", () => {
+        expect(isBracketPhase1Locked(kickoffs, true, afterDeadline)).toBe(true);
+    });
+
+    it("blocca esattamente alla scadenza+1ms", () => {
+        const justAfter = new Date(BRACKET_GRACE_DEADLINE.getTime() + 1);
+        expect(isBracketPhase1Locked(kickoffs, true, justAfter)).toBe(true);
+    });
+
+    it("a torneo non iniziato il bracket è libero a prescindere", () => {
+        const beforeTournament = new Date("2026-06-01T00:00:00Z");
+        expect(isBracketPhase1Locked(kickoffs, false, beforeTournament)).toBe(
+            false
         );
     });
 });

@@ -5,7 +5,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScoreInput } from "@/components/score-input";
-import { isMatchLocked, isPhase1Locked } from "@/lib/match-lock";
+import {
+    allGroupsFilled,
+    isBracketPhase1Locked,
+    isMatchLocked,
+} from "@/lib/match-lock";
 import { Shield } from "lucide-react";
 import {
     KNOCKOUT_MATCHES,
@@ -107,8 +111,20 @@ type BracketViewProps = BracketProps & { phase1Locked: boolean };
 
 export function BracketTab(props: BracketProps) {
     const champ = props.bracket.get("FINAL")?.winnerId;
-    // A torneo iniziato il bracket previsto (Fase 1) è congelato (ADR 0003).
-    const phase1Locked = isPhase1Locked(props.matches.map((m) => m.kickoff));
+    // A torneo iniziato il bracket previsto (Fase 1) è congelato (ADR 0003),
+    // SALVO la finestra di grazia: chi ha già compilato tutti i Gironi può
+    // ancora completare il Tabellone fino alla scadenza (vedi match-lock.ts).
+    const groupMatchIds = props.matches
+        .filter((m) => m.stage === "GROUP")
+        .map((m) => m.id);
+    const groupsFilled = allGroupsFilled(
+        groupMatchIds,
+        new Set(props.predictions.keys())
+    );
+    const phase1Locked = isBracketPhase1Locked(
+        props.matches.map((m) => m.kickoff),
+        groupsFilled
+    );
 
     return (
         <div className="space-y-4">

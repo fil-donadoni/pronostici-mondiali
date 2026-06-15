@@ -1,11 +1,16 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/db";
 import { match, prediction } from "@/db/schema";
 import { auth } from "@/lib/auth";
-import { isMatchLocked, isPhase1Locked } from "@/lib/match-lock";
+import {
+    allGroupsFilled,
+    isBracketPhase1Locked,
+    isMatchLocked,
+    isPhase1Locked,
+} from "@/lib/match-lock";
 
 const bodySchema = z.object({
     matchId: z.string().min(1),
@@ -34,34 +39,59 @@ export async function PUT(req: Request) {
     const phase = parsed.data.phase ?? 1;
     const userId = session.user.id;
 
-    // Freeze globale: a torneo iniziato la Fase 1 (Gironi + bracket previsto)
-    // è congelata, così il Bonus resta una previsione pre-torneo (ADR 0003).
-    // La Fase 2 (Tabellone reale) non è soggetta a questo freeze.
-    if (phase === 1) {
-        const allKickoffs = await db
-            .select({ kickoff: match.kickoff })
-            .from(match);
-        if (isPhase1Locked(allKickoffs.map((r) => r.kickoff))) {
-            return NextResponse.json(
-                { error: "Torneo iniziato: Fase 1 bloccata" },
-                { status: 403 }
-            );
-        }
-    }
-
-    // Lock sul calcio d'inizio: una Partita iniziata non è più pronosticabile.
-    const [m] = await db
-        .select({ kickoff: match.kickoff })
-        .from(match)
-        .where(eq(match.id, matchId))
-        .limit(1);
-    if (!m) {
+    const allMatches = await db
+        .select({
+            id: match.id,
+            kickoff: match.kickoff,
+            stage: match.stage,
+        })
+        .from(match);
+    const target = allMatches.find((r) => r.id === matchId);
+    if (!target) {
         return NextResponse.json(
             { error: "Partita inesistente" },
             { status: 404 }
         );
     }
-    if (isMatchLocked(m.kickoff)) {
+
+    // Freeze globale: a torneo iniziato la Fase 1 (Gironi + bracket previsto)
+    // è congelata, così il Bonus resta una previsione pre-torneo (ADR 0003).
+    // La Fase 2 (Tabellone reale) non è soggetta a questo freeze.
+    if (phase === 1) {
+        const kickoffs = allMatches.map((r) => r.kickoff);
+        if (target.stage === "GROUP") {
+            // I Gironi restano sempre bloccati a torneo iniziato.
+            if (isPhase1Locked(kickoffs)) {
+                return NextResponse.json(
+                    { error: "Torneo iniziato: Fase 1 bloccata" },
+                    { status: 403 }
+                );
+            }
+        } else {
+            // Tabellone previsto: finestra di grazia per chi ha già compilato
+            // tutti i Gironi (vedi match-lock.ts).
+            const groupMatchIds = allMatches
+                .filter((r) => r.stage === "GROUP")
+                .map((r) => r.id);
+            const predicted = await db
+                .select({ matchId: prediction.matchId })
+                .from(prediction)
+                .where(
+                    and(eq(prediction.userId, userId), eq(prediction.phase, 1))
+                );
+            const predictedIds = new Set(predicted.map((r) => r.matchId));
+            const groupsFilled = allGroupsFilled(groupMatchIds, predictedIds);
+            if (isBracketPhase1Locked(kickoffs, groupsFilled)) {
+                return NextResponse.json(
+                    { error: "Torneo iniziato: Fase 1 bloccata" },
+                    { status: 403 }
+                );
+            }
+        }
+    }
+
+    // Lock sul calcio d'inizio: una Partita iniziata non è più pronosticabile.
+    if (isMatchLocked(target.kickoff)) {
         return NextResponse.json(
             { error: "Partita iniziata: Pronostico bloccato" },
             { status: 403 }
