@@ -107,7 +107,10 @@ export const match = pgTable("match", {
 
 /**
  * Pronostico: input grezzo dell'utente per una Partita.
- * Unico source-of-truth lato utente. Una riga per (user, match).
+ * Unico source-of-truth lato utente. Una riga per (user, match, phase).
+ * - phase 1: Gironi + bracket previsto (la previsione iniziale).
+ * - phase 2: pronostici sugli accoppiamenti reali del Tabellone.
+ * Le due fasi coesistono sulla stessa Partita knockout (vedi docs/adr/0003).
  * penaltyWinner valorizzato solo se knockout + pareggio nei 90'.
  */
 export const prediction = pgTable(
@@ -119,6 +122,8 @@ export const prediction = pgTable(
         matchId: text("match_id")
             .notNull()
             .references(() => match.id, { onDelete: "cascade" }),
+        // 1 = Fase 1 (Gironi + bracket previsto), 2 = Fase 2 (Tabellone reale)
+        phase: integer("phase").notNull().default(1),
         homeScore: integer("home_score").notNull(),
         awayScore: integer("away_score").notNull(),
         // "home" | "away" — chi passa ai rigori in caso di pareggio knockout
@@ -127,7 +132,7 @@ export const prediction = pgTable(
             .$defaultFn(() => new Date())
             .notNull(),
     },
-    (t) => [primaryKey({ columns: [t.userId, t.matchId] })]
+    (t) => [primaryKey({ columns: [t.userId, t.matchId, t.phase] })]
 );
 
 /**

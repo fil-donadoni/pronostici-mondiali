@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { team, match, prediction, realResult, user } from "@/db/schema";
 import { buildLeaderboard, type LeaderboardEntry } from "@/lib/leaderboard";
@@ -37,10 +37,11 @@ export async function loadMatches(): Promise<MatchInfo[]> {
 }
 
 export async function loadPredictions(userId: string): Promise<Prediction[]> {
+    // Fase 1 (Gironi + bracket previsto): la dashboard pronostica qui.
     const rows = await db
         .select()
         .from(prediction)
-        .where(eq(prediction.userId, userId));
+        .where(and(eq(prediction.userId, userId), eq(prediction.phase, 1)));
     return rows.map((p) => ({
         matchId: p.matchId,
         homeScore: p.homeScore,
@@ -70,7 +71,7 @@ export async function loadRealResults(): Promise<RealResult[]> {
 export async function loadLeaderboard(): Promise<LeaderboardEntry[]> {
     const [users, allPreds, reals, matches] = await Promise.all([
         db.select({ id: user.id, name: user.name }).from(user),
-        db.select().from(prediction),
+        db.select().from(prediction).where(eq(prediction.phase, 1)),
         loadRealResults(),
         loadMatches(),
     ]);
@@ -97,7 +98,7 @@ export async function loadLeaderboard(): Promise<LeaderboardEntry[]> {
 export async function loadStatistiche(): Promise<Statistiche> {
     const [users, allPreds, reals, matches, teams] = await Promise.all([
         db.select({ id: user.id, name: user.name }).from(user),
-        db.select().from(prediction),
+        db.select().from(prediction).where(eq(prediction.phase, 1)),
         loadRealResults(),
         loadMatches(),
         loadTeams(),
