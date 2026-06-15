@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isMatchLocked, isPhase1Locked } from "./match-lock";
+import { isGroupStageOver, isMatchLocked, isPhase1Locked } from "./match-lock";
 
 describe("isMatchLocked", () => {
     const now = new Date("2026-06-13T12:00:00Z");
@@ -71,5 +71,29 @@ describe("isPhase1Locked", () => {
         expect(
             isPhase1Locked([null, "non-una-data", "2026-06-13T11:00:00Z"], now)
         ).toBe(true);
+    });
+});
+
+describe("isGroupStageOver", () => {
+    // ultima partita gironi: kickoff 2026-06-27T20:00Z -> fine ~22:00Z
+    const last = "2026-06-27T20:00:00Z";
+
+    it("false senza kickoff validi", () => {
+        expect(isGroupStageOver([])).toBe(false);
+        expect(isGroupStageOver([null, "x"])).toBe(false);
+    });
+
+    it("false mentre l'ultima partita è ancora in corso", () => {
+        const during = new Date("2026-06-27T21:00:00Z"); // +1h, non finita
+        expect(isGroupStageOver(["2026-06-25T18:00:00Z", last], during)).toBe(
+            false
+        );
+    });
+
+    it("true dopo la fine (kickoff + ~2h) dell'ultima partita", () => {
+        const after = new Date("2026-06-27T22:30:00Z");
+        expect(isGroupStageOver(["2026-06-25T18:00:00Z", last], after)).toBe(
+            true
+        );
     });
 });

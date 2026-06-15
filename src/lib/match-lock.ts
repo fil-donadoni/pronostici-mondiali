@@ -25,6 +25,31 @@ export function isMatchLocked(
  * Funzione pura condivisa tra client (editing disabilitato) e server
  * (validazione in PUT /api/predictions).
  */
+/** Durata stimata di una partita (per dire quando una partita è "finita"). */
+const MATCH_DURATION_MS = 2 * 60 * 60 * 1000;
+
+/**
+ * La fase a Gironi è conclusa quando è passata la FINE (kickoff + ~2h)
+ * dell'ultima partita dei Gironi. Da quel momento si apre la Fase 2
+ * (Tabellone reale). Funzione pura: passare i kickoff delle sole Partite di
+ * Girone.
+ */
+export function isGroupStageOver(
+    groupKickoffs: Array<string | Date | null | undefined>,
+    now: Date = new Date()
+): boolean {
+    let latest = Number.NEGATIVE_INFINITY;
+    for (const kickoff of groupKickoffs) {
+        if (!kickoff) continue;
+        const k = typeof kickoff === "string" ? new Date(kickoff) : kickoff;
+        const t = k.getTime();
+        if (Number.isNaN(t)) continue;
+        if (t > latest) latest = t;
+    }
+    if (!Number.isFinite(latest)) return false;
+    return now.getTime() >= latest + MATCH_DURATION_MS;
+}
+
 export function isPhase1Locked(
     kickoffs: Array<string | Date | null | undefined>,
     now: Date = new Date()

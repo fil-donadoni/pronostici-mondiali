@@ -7,7 +7,8 @@ import {
     loadRealResults,
     loadTeams,
 } from "@/lib/queries";
-import { isPhase1Locked } from "@/lib/match-lock";
+import { isGroupStageOver, isPhase1Locked } from "@/lib/match-lock";
+import { Card, CardContent } from "@/components/ui/card";
 import { resolveRealBracket } from "@/lib/tournament/real-bracket";
 import {
     KNOCKOUT_MATCHES,
@@ -31,6 +32,29 @@ export default async function TabelloneRealePage() {
         loadRealResults(),
         loadPhase2Predictions(session.user.id),
     ]);
+
+    // La Fase 2 si apre solo dalla fine dell'ultima partita dei Gironi.
+    const groupKickoffs = matches
+        .filter((m) => m.stage === "GROUP")
+        .map((m) => m.kickoff);
+    if (!isGroupStageOver(groupKickoffs)) {
+        return (
+            <div className="mx-auto max-w-2xl space-y-4">
+                <div>
+                    <h1 className="text-2xl font-bold">Tabellone reale</h1>
+                    <p className="text-muted-foreground text-sm">
+                        Fase 2: pronostici sugli accoppiamenti reali del
+                        Tabellone.
+                    </p>
+                </div>
+                <Card>
+                    <CardContent className="py-10 text-center text-muted-foreground">
+                        Disponibile dalla fine della fase a Gironi.
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    }
 
     const teamName = new Map(teams.map((t) => [t.id, t.name]));
     const matchById = new Map(matches.map((m) => [m.id, m]));

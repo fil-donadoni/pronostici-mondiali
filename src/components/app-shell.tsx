@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { LogOut, Menu, RefreshCw, Trophy, X } from "lucide-react";
 import { signOut } from "@/lib/auth-client";
+import { isGroupStageOver } from "@/lib/match-lock";
 import { Button } from "@/components/ui/button";
 import { AppProvider, useApp } from "@/lib/app-context";
 import type {
@@ -56,8 +57,16 @@ export function AppShell({
 function Shell({ children }: { children: React.ReactNode }) {
     const router = useRouter();
     const pathname = usePathname();
-    const { userName, syncing, handleSync } = useApp();
+    const { userName, syncing, handleSync, matches } = useApp();
     const [menuOpen, setMenuOpen] = useState(false);
+
+    // Il "Tabellone reale" (Fase 2) compare solo dalla fine dei Gironi.
+    const groupOver = isGroupStageOver(
+        matches.filter((m) => m.stage === "GROUP").map((m) => m.kickoff)
+    );
+    const nav = groupOver
+        ? NAV
+        : NAV.filter((i) => i.href !== "/tabellone-reale");
     const headerRef = useRef<HTMLElement>(null);
 
     // Espone l'altezza reale dell'header come variabile CSS (--app-header-h),
@@ -153,7 +162,7 @@ function Shell({ children }: { children: React.ReactNode }) {
                 {/* Navigazione desktop: ogni vista è una rotta */}
                 <nav className="mx-auto max-w-6xl w-full px-4 pb-3 hidden md:block">
                     <div className="flex h-11 items-center gap-1 rounded-full bg-card/60 p-1 backdrop-blur w-fit">
-                        {NAV.map((item) => (
+                        {nav.map((item) => (
                             <Link
                                 key={item.href}
                                 href={item.href}
@@ -213,7 +222,7 @@ function Shell({ children }: { children: React.ReactNode }) {
                     </div>
 
                     <nav className="flex flex-col gap-1 p-3">
-                        {NAV.map((item) => (
+                        {nav.map((item) => (
                             <Link
                                 key={item.href}
                                 href={item.href}
