@@ -1,5 +1,11 @@
 import { outcome } from "@/lib/tournament/compare";
-import type { MatchInfo, RealResult, TeamInfo } from "@/lib/tournament/types";
+import { computeStandings, resolveBracket } from "@/lib/tournament/engine";
+import type {
+    MatchInfo,
+    Prediction,
+    RealResult,
+    TeamInfo,
+} from "@/lib/tournament/types";
 import {
     buildLeaderboard,
     type LeaderboardPrediction,
@@ -58,6 +64,9 @@ export type PlayerAward = {
     rate: number;
 };
 
+/** Squadra prevista campione del mondo e da quanti giocatori. */
+export type TopChampion = { teamId: string; name: string; count: number };
+
 export type Statistiche = {
     /** L'oracolo: giocatore con più punteggi esatti azzeccati. */
     oracle: PlayerAward | null;
@@ -71,6 +80,8 @@ export type Statistiche = {
     leastGuessed: MatchStat | null;
     /** Pronostici sbagliati di un solo gol; prima i cambi esito spettacolari. */
     nearMisses: NearMiss[];
+    /** Le 5 squadre più pronosticate come campione del mondo (Fase 1). */
+    topChampions: TopChampion[];
     /** Numero di partite dei gironi con almeno un confronto. */
     matchesCompared: number;
 };
@@ -156,6 +167,39 @@ export function buildStatistiche(
                           ? e
                           : worst
               );
+
+    // Campione del mondo previsto da ciascun giocatore (vincente del bracket di
+    // Fase 1) -> aggregato sulle 3 squadre più gettonate.
+    const byUserPreds = new Map<string, Map<string, Prediction>>();
+    for (const p of predictions) {
+        let m = byUserPreds.get(p.userId);
+        if (!m) {
+            m = new Map();
+            byUserPreds.set(p.userId, m);
+        }
+        m.set(p.matchId, {
+            matchId: p.matchId,
+            homeScore: p.homeScore,
+            awayScore: p.awayScore,
+            penaltyWinner: p.penaltyWinner,
+        });
+    }
+    const champCount = new Map<string, number>();
+    for (const preds of byUserPreds.values()) {
+        const champ = resolveBracket(
+            computeStandings(teams, matches, preds),
+            preds
+        ).get("FINAL")?.winnerId;
+        if (champ) champCount.set(champ, (champCount.get(champ) ?? 0) + 1);
+    }
+    const topChampions: TopChampion[] = [...champCount.entries()]
+        .map(([teamId, count]) => ({
+            teamId,
+            name: names.get(teamId) ?? teamId,
+            count,
+        }))
+        .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+        .slice(0, 5);
 
     const stats: MatchStat[] = [];
     const nearMisses: NearMiss[] = [];
@@ -258,6 +302,7 @@ export function buildStatistiche(
         mostOutcome,
         leastGuessed,
         nearMisses: [...flips, ...kept],
+        topChampions,
         matchesCompared: withPreds.length,
     };
 }

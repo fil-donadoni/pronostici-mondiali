@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import {
     Crosshair,
+    Crown,
     Dices,
     Flame,
     Info,
@@ -11,7 +12,12 @@ import {
 } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { loadStatistiche } from "@/lib/queries";
-import type { MatchStat, NearMiss, PlayerAward } from "@/lib/match-stats";
+import type {
+    MatchStat,
+    NearMiss,
+    PlayerAward,
+    TopChampion,
+} from "@/lib/match-stats";
 import { Card, CardContent } from "@/components/ui/card";
 import {
     Table,
@@ -85,6 +91,10 @@ export default async function StatistichePage() {
                 />
             </div>
 
+            {stats.topChampions.length > 0 && (
+                <ChampionsCard champions={stats.topChampions} />
+            )}
+
             <NearMissCard
                 title="Quasi! Ribaltati per un gol"
                 subtitle="Un solo gol ha cambiato l'esito. 3 punti persi!"
@@ -105,6 +115,46 @@ export default async function StatistichePage() {
                 tutti i giocatori. Ordinati per gol totali della partita.
             </p>
         </div>
+    );
+}
+
+function ChampionsCard({ champions }: { champions: TopChampion[] }) {
+    const max = champions[0]?.count ?? 1;
+    return (
+        <Card>
+            <CardContent className="space-y-3 py-4">
+                <div className="flex items-center justify-center gap-2 font-semibold">
+                    <Crown className="size-5 text-amber-500" />
+                    Campioni più pronosticati
+                </div>
+                <p className="text-center text-xs text-muted-foreground">
+                    Le 5 squadre date campione del mondo dal Tabellone di Fase 1
+                </p>
+                <div className="space-y-2 pt-1">
+                    {champions.map((c, i) => (
+                        <div key={c.teamId} className="flex items-center gap-3">
+                            <span className="w-4 text-center text-sm font-semibold tabular-nums text-muted-foreground">
+                                {i + 1}
+                            </span>
+                            <span className="w-28 truncate text-sm font-medium">
+                                {c.name}
+                            </span>
+                            <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+                                <div
+                                    className="h-full rounded-full bg-amber-500"
+                                    style={{
+                                        width: `${(c.count / max) * 100}%`,
+                                    }}
+                                />
+                            </div>
+                            <span className="w-6 text-right text-sm tabular-nums">
+                                {c.count}
+                            </span>
+                        </div>
+                    ))}
+                </div>
+            </CardContent>
+        </Card>
     );
 }
 

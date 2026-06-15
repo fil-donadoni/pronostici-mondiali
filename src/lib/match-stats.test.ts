@@ -177,6 +177,14 @@ describe("buildStatistiche", () => {
         expect(s.oracle).toBeNull();
         expect(s.gambler).toBeNull();
         expect(s.matchesCompared).toBe(0);
+        expect(s.topChampions).toEqual([]);
+    });
+
+    it("topChampions: senza un bracket risolvibile (solo gironi) è vuoto", () => {
+        // Senza i pronostici knockout la Finale non si risolve -> nessun campione.
+        const preds = [pred("u1", "G-1", 1, 0), pred("u2", "G-1", 0, 1)];
+        const s = buildStatistiche(users, preds, reals, matches, teams);
+        expect(s.topChampions).toEqual([]);
     });
 
     it("oracolo = più esatti, gambler = quota esiti più bassa", () => {
