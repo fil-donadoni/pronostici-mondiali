@@ -146,20 +146,25 @@ function winnerOfPrediction(
 }
 
 /**
- * Propaga i pronostici lungo tutto il Tabellone.
- * Risolve ogni slot (piazzata, terza, vincente-di) e calcola il vincente,
- * fino alla Finale. Tutto derivato (ADR 0001).
+ * Strategia che, dati gli id risolti di casa/ospite di una partita knockout,
+ * decide vincente e perdente. Permette di propagare il Tabellone sia dai
+ * Pronostici (winnerOfPrediction) sia dai Risultati reali (chi-passa salvato).
  */
-export function resolveBracket(
+export type WinnerDecider = (
+    matchId: string,
+    homeId: string | null,
+    awayId: string | null
+) => { winnerId: string | null; loserId: string | null };
+
+/**
+ * Cuore della propagazione del Tabellone: risolve ogni slot (piazzata, terza,
+ * vincente/perdente-di) e calcola vincente/perdente via la strategia `decide`.
+ * Riusato da resolveBracket (pronostici) e resolveRealBracket (reale).
+ */
+export function resolveBracketWith(
     standings: Map<GroupCode, StandingRow[]>,
-    predictions: Map<string, Prediction>
+    decide: WinnerDecider
 ): Map<string, ResolvedKnockout> {
-    // Assegnazione UFFICIALE delle 8 terze (tabella FIFA Annex C, 495 combinazioni).
-    // 1) Ranking delle 12 terze -> le 8 qualificate e i loro gironi.
-    // 2) Chiave = gironi ordinati -> mappa { gironeVincente -> gironeDellaTerza }.
-    // 3) Ogni slot "third" affronta la 1ª di `facingWinner`: prende la terza del
-    //    girone indicato dalla tabella. Se <8 terze decise (utente non ha ancora
-    //    pronosticato tutti i gironi) la chiave non esiste -> slot TBD (null).
     const ranked = rankThirds(standings);
     const qualifiedGroups = ranked.slice(0, 8).map((t) => t.group);
     const tableKey = [...qualifiedGroups].sort().join("");
@@ -192,11 +197,7 @@ export function resolveBracket(
     for (const m of KNOCKOUT_MATCHES) {
         const homeId = resolveSlot(m.home);
         const awayId = resolveSlot(m.away);
-        const { winnerId, loserId } = winnerOfPrediction(
-            homeId,
-            awayId,
-            PRED(predictions, m.id)
-        );
+        const { winnerId, loserId } = decide(m.id, homeId, awayId);
         resolved.set(m.id, {
             matchId: m.id,
             homeTeamId: homeId,
@@ -207,6 +208,22 @@ export function resolveBracket(
     }
 
     return resolved;
+}
+
+/**
+ * Propaga i pronostici lungo tutto il Tabellone.
+ * Risolve ogni slot (piazzata, terza, vincente-di) e calcola il vincente,
+ * fino alla Finale. Tutto derivato (ADR 0001).
+ */
+export function resolveBracket(
+    standings: Map<GroupCode, StandingRow[]>,
+    predictions: Map<string, Prediction>
+): Map<string, ResolvedKnockout> {
+    // Assegnazione UFFICIALE delle 8 terze (tabella FIFA Annex C) e propagazione
+    // gestite da resolveBracketWith; qui la strategia è il pronostico dell'utente.
+    return resolveBracketWith(standings, (matchId, homeId, awayId) =>
+        winnerOfPrediction(homeId, awayId, PRED(predictions, matchId))
+    );
 }
 
 /** Insieme di squadre previste che raggiungono ciascun turno (per il confronto C-light). */

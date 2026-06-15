@@ -4,6 +4,12 @@ import { asc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { team, match, realResult, user } from "@/db/schema";
 import { auth } from "@/lib/auth";
+import { loadMatches, loadRealResults, loadTeams } from "@/lib/queries";
+import {
+    advancerOf,
+    computeDemoResults,
+    resolveRealBracket,
+} from "@/lib/tournament/real-bracket";
 
 const SYNC_INTERVAL_MS = 60 * 60 * 1000; // 1 ora
 
@@ -85,52 +91,53 @@ async function touchLastSync(userId: string): Promise<void> {
  * giocati restano vuoti, come i risultati reali non ancora arrivati.
  */
 async function syncDemo(): Promise<number> {
-    const groupMatches = await db.select().from(match);
     const now = new Date();
+    const [teams, matches] = await Promise.all([loadTeams(), loadMatches()]);
+
+    // Calcolo puro: Gironi + knockout demo (con chi-passa) per le partite già
+    // giocate (kickoff <= now). Vedi computeDemoResults.
+    const rows = computeDemoResults(teams, matches, now);
+    const playedIds = new Set(rows.map((r) => r.matchId));
 
     // Pulizia: rimuovi i risultati di partite non ancora giocate (es. invented
     // da sync precedenti) così restano vuote finché non arrivano davvero.
-    const notPlayedIds = groupMatches
-        .filter((m) => !m.kickoff || new Date(m.kickoff) > now)
-        .map((m) => m.id);
+    const notPlayedIds = matches
+        .map((m) => m.id)
+        .filter((id) => !playedIds.has(id));
     if (notPlayedIds.length > 0) {
         await db
             .delete(realResult)
             .where(inArray(realResult.matchId, notPlayedIds));
     }
 
-    let count = 0;
-    for (const m of groupMatches) {
-        if (m.stage !== "GROUP" || !m.homeTeamId || !m.awayTeamId) continue;
-        if (!m.kickoff || new Date(m.kickoff) > now) continue; // non ancora giocata
-        // pseudo-casuale deterministico dal matchNumber
-        const h = (m.matchNumber * 7) % 4;
-        const a = (m.matchNumber * 3) % 3;
+    for (const r of rows) {
+        const values = {
+            matchId: r.matchId,
+            homeScore: r.homeScore,
+            awayScore: r.awayScore,
+            homeTeamId: r.homeTeamId,
+            awayTeamId: r.awayTeamId,
+            advancerTeamId: r.advancerTeamId,
+            finished: true,
+            syncedAt: new Date(),
+        };
         await db
             .insert(realResult)
-            .values({
-                matchId: m.id,
-                homeScore: h,
-                awayScore: a,
-                homeTeamId: m.homeTeamId,
-                awayTeamId: m.awayTeamId,
-                finished: true,
-                syncedAt: new Date(),
-            })
+            .values(values)
             .onConflictDoUpdate({
                 target: [realResult.matchId],
                 set: {
-                    homeScore: h,
-                    awayScore: a,
-                    homeTeamId: m.homeTeamId,
-                    awayTeamId: m.awayTeamId,
+                    homeScore: values.homeScore,
+                    awayScore: values.awayScore,
+                    homeTeamId: values.homeTeamId,
+                    awayTeamId: values.awayTeamId,
+                    advancerTeamId: values.advancerTeamId,
                     finished: true,
-                    syncedAt: new Date(),
+                    syncedAt: values.syncedAt,
                 },
             });
-        count++;
     }
-    return count;
+    return rows.length;
 }
 
 /**
@@ -149,7 +156,10 @@ async function syncReal(apiKey: string): Promise<number> {
             homeTeam: { id: number; tla: string | null };
             awayTeam: { id: number; tla: string | null };
             status: string;
-            score: { fullTime: { home: number | null; away: number | null } };
+            score: {
+                winner: string | null; // HOME_TEAM | AWAY_TEAM | DRAW | null
+                fullTime: { home: number | null; away: number | null };
+            };
         }[];
     };
 
@@ -175,45 +185,126 @@ async function syncReal(apiKey: string): Promise<number> {
         }
     }
 
-    let count = 0;
+    // Indicizza le partite FINISHED dell'API per COPPIA non orientata di TLA.
+    const apiByPair = new Map<
+        string,
+        {
+            h: string;
+            a: string;
+            homeScore: number;
+            awayScore: number;
+            winnerTla: string | null;
+        }
+    >();
     for (const am of data.matches ?? []) {
         if (am.status !== "FINISHED") continue;
         const h = am.homeTeam.tla;
         const a = am.awayTeam.tla;
         if (!h || !a || !ourIds.has(h) || !ourIds.has(a)) continue;
-        const m = matchByPair.get(pairKey(h, a));
-        if (!m) continue;
+        const winnerTla =
+            am.score.winner === "HOME_TEAM"
+                ? h
+                : am.score.winner === "AWAY_TEAM"
+                  ? a
+                  : null;
+        apiByPair.set(pairKey(h, a), {
+            h,
+            a,
+            homeScore: am.score.fullTime.home ?? 0,
+            awayScore: am.score.fullTime.away ?? 0,
+            winnerTla,
+        });
+    }
 
-        const apiHome = am.score.fullTime.home ?? 0;
-        const apiAway = am.score.fullTime.away ?? 0;
-        // riallinea i punteggi all'orientamento casa/ospite del NOSTRO match
-        const sameOrient = m.homeTeamId === h;
-        const hs = sameOrient ? apiHome : apiAway;
-        const as = sameOrient ? apiAway : apiHome;
-
+    const upsert = async (row: {
+        matchId: string;
+        homeScore: number;
+        awayScore: number;
+        homeTeamId: string;
+        awayTeamId: string;
+        advancerTeamId: string | null;
+    }) => {
         await db
             .insert(realResult)
-            .values({
-                matchId: m.id,
-                homeScore: hs,
-                awayScore: as,
-                homeTeamId: m.homeTeamId,
-                awayTeamId: m.awayTeamId,
-                finished: true,
-                syncedAt: new Date(),
-            })
+            .values({ ...row, finished: true, syncedAt: new Date() })
             .onConflictDoUpdate({
                 target: [realResult.matchId],
                 set: {
-                    homeScore: hs,
-                    awayScore: as,
-                    homeTeamId: m.homeTeamId,
-                    awayTeamId: m.awayTeamId,
+                    homeScore: row.homeScore,
+                    awayScore: row.awayScore,
+                    homeTeamId: row.homeTeamId,
+                    awayTeamId: row.awayTeamId,
+                    advancerTeamId: row.advancerTeamId,
                     finished: true,
                     syncedAt: new Date(),
                 },
             });
-        count++;
+    };
+
+    const written = new Set<string>();
+
+    // 1) Gironi: accoppiamenti fissi, nessun chi-passa.
+    for (const m of ourMatches) {
+        if (m.stage !== "GROUP" || !m.homeTeamId || !m.awayTeamId) continue;
+        const api = apiByPair.get(pairKey(m.homeTeamId, m.awayTeamId));
+        if (!api) continue;
+        const sameOrient = m.homeTeamId === api.h;
+        await upsert({
+            matchId: m.id,
+            homeScore: sameOrient ? api.homeScore : api.awayScore,
+            awayScore: sameOrient ? api.awayScore : api.homeScore,
+            homeTeamId: m.homeTeamId,
+            awayTeamId: m.awayTeamId,
+            advancerTeamId: null,
+        });
+        written.add(m.id);
     }
-    return count;
+
+    // 2) Knockout: gli slot reali si risolvono dalle Classifiche reali; man mano
+    //    che scriviamo i chi-passa, i turni successivi diventano risolvibili.
+    //    Iteriamo finché non ci sono più Partite nuove da mappare.
+    const [teamInfos, matchInfos] = await Promise.all([
+        loadTeams(),
+        loadMatches(),
+    ]);
+    for (let pass = 0; pass < 6; pass++) {
+        const realResults = await loadRealResults();
+        const bracket = resolveRealBracket(teamInfos, matchInfos, realResults);
+        let wroteThisPass = 0;
+        for (const [matchId, slot] of bracket) {
+            if (written.has(matchId)) continue;
+            const homeId = slot.homeTeamId;
+            const awayId = slot.awayTeamId;
+            if (!homeId || !awayId) continue;
+            const api = apiByPair.get(pairKey(homeId, awayId));
+            if (!api) continue;
+            const sameOrient = homeId === api.h;
+            const winner: "home" | "away" | null = !api.winnerTla
+                ? null
+                : api.winnerTla === homeId
+                  ? "home"
+                  : "away";
+            const homeScore = sameOrient ? api.homeScore : api.awayScore;
+            const awayScore = sameOrient ? api.awayScore : api.homeScore;
+            await upsert({
+                matchId,
+                homeScore,
+                awayScore,
+                homeTeamId: homeId,
+                awayTeamId: awayId,
+                advancerTeamId: advancerOf(
+                    homeId,
+                    awayId,
+                    homeScore,
+                    awayScore,
+                    winner
+                ),
+            });
+            written.add(matchId);
+            wroteThisPass++;
+        }
+        if (wroteThisPass === 0) break;
+    }
+
+    return written.size;
 }

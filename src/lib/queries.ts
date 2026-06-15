@@ -45,6 +45,7 @@ export async function loadPredictions(userId: string): Promise<Prediction[]> {
         homeScore: p.homeScore,
         awayScore: p.awayScore,
         penaltyWinner: (p.penaltyWinner as "home" | "away" | null) ?? null,
+        updatedAt: p.updatedAt.toISOString(),
     }));
 }
 
@@ -56,6 +57,7 @@ export async function loadRealResults(): Promise<RealResult[]> {
         awayScore: r.awayScore,
         homeTeamId: r.homeTeamId,
         awayTeamId: r.awayTeamId,
+        advancerTeamId: r.advancerTeamId,
         finished: r.finished,
     }));
 }
@@ -80,6 +82,7 @@ export async function loadLeaderboard(): Promise<LeaderboardEntry[]> {
             homeScore: p.homeScore,
             awayScore: p.awayScore,
             penaltyWinner: (p.penaltyWinner as "home" | "away" | null) ?? null,
+            updatedAt: p.updatedAt.toISOString(),
         })),
         reals,
         matches
