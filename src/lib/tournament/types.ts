@@ -23,6 +23,13 @@ export type Prediction = {
     homeScore: number;
     awayScore: number;
     penaltyWinner: "home" | "away" | null;
+    /**
+     * Istante ISO (UTC) dell'ultima modifica. Presente quando il Pronostico
+     * arriva dal DB; assente per gli stati ottimistici lato client (match non
+     * ancora bloccati -> mai "in ritardo"). Usato dal cap punti: una modifica
+     * dopo il calcio d'inizio vale al massimo 1 punto (vedi compare.ts).
+     */
+    updatedAt?: string;
 };
 
 /** Modifica parziale di un Pronostico salvata dalla UI. */
@@ -39,6 +46,13 @@ export type RealResult = {
     homeTeamId: string | null;
     awayTeamId: string | null;
     finished: boolean;
+    /**
+     * Squadra realmente avanzata al turno successivo (chi-passa), inclusi
+     * supplementari e rigori. Valorizzata solo per il knockout concluso; null
+     * per i Gironi o per partite non ancora decise. Verità per il Bonus e per
+     * il punto "chi-passa" della Fase 2 (vedi docs/adr/0003).
+     */
+    advancerTeamId: string | null;
 };
 
 export type StandingRow = {

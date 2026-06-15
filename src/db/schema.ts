@@ -145,6 +145,8 @@ export const realResult = pgTable(
         // squadre reali effettive (per il knockout possono differire dal pronostico)
         homeTeamId: text("home_team_id").references(() => team.id),
         awayTeamId: text("away_team_id").references(() => team.id),
+        // chi-passa reale (knockout, incl. supplementari/rigori); null per i Gironi
+        advancerTeamId: text("advancer_team_id").references(() => team.id),
         finished: boolean("finished").notNull().default(false),
         syncedAt: timestamp("synced_at")
             .$defaultFn(() => new Date())

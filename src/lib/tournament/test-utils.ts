@@ -44,7 +44,8 @@ export const real = (
     awayScore: number,
     finished = true,
     homeTeamId: string | null = null,
-    awayTeamId: string | null = null
+    awayTeamId: string | null = null,
+    advancerTeamId: string | null = null
 ): RealResult => ({
     matchId,
     homeScore,
@@ -52,6 +53,7 @@ export const real = (
     homeTeamId,
     awayTeamId,
     finished,
+    advancerTeamId,
 });
 
 /** StandingRow minimale: conta solo teamId/rank per i test del bracket. */
