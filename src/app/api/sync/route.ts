@@ -216,32 +216,27 @@ async function syncReal(apiKey: string): Promise<number> {
         });
     }
 
-    const upsert = async (row: {
+    // Insert-only: NON aggiorna i risultati già presenti. Così una correzione
+    // manuale di un errore dell'API non viene annullata ai sync successivi.
+    // Ritorna true se la riga è stata davvero inserita (mancante).
+    const insertMissing = async (row: {
         matchId: string;
         homeScore: number;
         awayScore: number;
         homeTeamId: string;
         awayTeamId: string;
         advancerTeamId: string | null;
-    }) => {
-        await db
+    }): Promise<boolean> => {
+        const inserted = await db
             .insert(realResult)
             .values({ ...row, finished: true, syncedAt: new Date() })
-            .onConflictDoUpdate({
-                target: [realResult.matchId],
-                set: {
-                    homeScore: row.homeScore,
-                    awayScore: row.awayScore,
-                    homeTeamId: row.homeTeamId,
-                    awayTeamId: row.awayTeamId,
-                    advancerTeamId: row.advancerTeamId,
-                    finished: true,
-                    syncedAt: new Date(),
-                },
-            });
+            .onConflictDoNothing({ target: [realResult.matchId] })
+            .returning({ matchId: realResult.matchId });
+        return inserted.length > 0;
     };
 
     const written = new Set<string>();
+    let insertedCount = 0;
 
     // 1) Gironi: accoppiamenti fissi, nessun chi-passa.
     for (const m of ourMatches) {
@@ -249,14 +244,18 @@ async function syncReal(apiKey: string): Promise<number> {
         const api = apiByPair.get(pairKey(m.homeTeamId, m.awayTeamId));
         if (!api) continue;
         const sameOrient = m.homeTeamId === api.h;
-        await upsert({
-            matchId: m.id,
-            homeScore: sameOrient ? api.homeScore : api.awayScore,
-            awayScore: sameOrient ? api.awayScore : api.homeScore,
-            homeTeamId: m.homeTeamId,
-            awayTeamId: m.awayTeamId,
-            advancerTeamId: null,
-        });
+        if (
+            await insertMissing({
+                matchId: m.id,
+                homeScore: sameOrient ? api.homeScore : api.awayScore,
+                awayScore: sameOrient ? api.awayScore : api.homeScore,
+                homeTeamId: m.homeTeamId,
+                awayTeamId: m.awayTeamId,
+                advancerTeamId: null,
+            })
+        ) {
+            insertedCount++;
+        }
         written.add(m.id);
     }
 
@@ -286,25 +285,29 @@ async function syncReal(apiKey: string): Promise<number> {
                   : "away";
             const homeScore = sameOrient ? api.homeScore : api.awayScore;
             const awayScore = sameOrient ? api.awayScore : api.homeScore;
-            await upsert({
-                matchId,
-                homeScore,
-                awayScore,
-                homeTeamId: homeId,
-                awayTeamId: awayId,
-                advancerTeamId: advancerOf(
-                    homeId,
-                    awayId,
+            if (
+                await insertMissing({
+                    matchId,
                     homeScore,
                     awayScore,
-                    winner
-                ),
-            });
+                    homeTeamId: homeId,
+                    awayTeamId: awayId,
+                    advancerTeamId: advancerOf(
+                        homeId,
+                        awayId,
+                        homeScore,
+                        awayScore,
+                        winner
+                    ),
+                })
+            ) {
+                insertedCount++;
+            }
             written.add(matchId);
             wroteThisPass++;
         }
         if (wroteThisPass === 0) break;
     }
 
-    return written.size;
+    return insertedCount;
 }
