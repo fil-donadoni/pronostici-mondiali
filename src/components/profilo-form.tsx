@@ -16,7 +16,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export function ProfiloForm({ initialName }: { initialName: string }) {
+export function ProfiloForm({
+    initialName,
+    impersonating = false,
+}: {
+    initialName: string;
+    /** Admin in impersonation: reset password senza currentPassword. */
+    impersonating?: boolean;
+}) {
     const router = useRouter();
 
     const [name, setName] = useState(initialName);
@@ -55,13 +62,26 @@ export function ProfiloForm({ initialName }: { initialName: string }) {
         }
         setSavingPassword(true);
         try {
-            const { error } = await authClient.changePassword({
-                currentPassword,
-                newPassword,
-                revokeOtherSessions: true,
-            });
-            if (error)
-                throw new Error(error.message ?? "Errore cambio password");
+            if (impersonating) {
+                // Admin in impersonation: reset senza currentPassword.
+                const res = await fetch("/api/admin/reset-password", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ newPassword }),
+                });
+                if (!res.ok) {
+                    const data = await res.json().catch(() => ({}));
+                    throw new Error(data.error ?? "Errore reset password");
+                }
+            } else {
+                const { error } = await authClient.changePassword({
+                    currentPassword,
+                    newPassword,
+                    revokeOtherSessions: true,
+                });
+                if (error)
+                    throw new Error(error.message ?? "Errore cambio password");
+            }
             toast.success("Password aggiornata!");
             setCurrentPassword("");
             setNewPassword("");
@@ -105,26 +125,30 @@ export function ProfiloForm({ initialName }: { initialName: string }) {
                 <CardHeader>
                     <CardTitle>Password</CardTitle>
                     <CardDescription>
-                        Cambia la password del tuo account.
+                        {impersonating
+                            ? "Reset della password di questo utente (impersonation): non serve la password attuale."
+                            : "Cambia la password del tuo account."}
                     </CardDescription>
                 </CardHeader>
                 <form onSubmit={onSubmitPassword}>
                     <CardContent className="space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="currentPassword">
-                                Password attuale
-                            </Label>
-                            <Input
-                                id="currentPassword"
-                                type="password"
-                                value={currentPassword}
-                                onChange={(e) =>
-                                    setCurrentPassword(e.target.value)
-                                }
-                                required
-                                autoComplete="current-password"
-                            />
-                        </div>
+                        {!impersonating && (
+                            <div className="space-y-2">
+                                <Label htmlFor="currentPassword">
+                                    Password attuale
+                                </Label>
+                                <Input
+                                    id="currentPassword"
+                                    type="password"
+                                    value={currentPassword}
+                                    onChange={(e) =>
+                                        setCurrentPassword(e.target.value)
+                                    }
+                                    required
+                                    autoComplete="current-password"
+                                />
+                            </div>
+                        )}
                         <div className="space-y-2">
                             <Label htmlFor="newPassword">Nuova password</Label>
                             <Input
@@ -158,7 +182,9 @@ export function ProfiloForm({ initialName }: { initialName: string }) {
                         <Button type="submit" disabled={savingPassword}>
                             {savingPassword
                                 ? "Salvataggio…"
-                                : "Cambia password"}
+                                : impersonating
+                                  ? "Reset password"
+                                  : "Cambia password"}
                         </Button>
                     </CardFooter>
                 </form>

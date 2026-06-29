@@ -16,6 +16,21 @@ export function isMatchLocked(
 }
 
 /**
+ * Lock effettivo di un Pronostico tenendo conto dell'impersonation.
+ *
+ * Un admin che impersona un altro utente aggira ogni lock temporale: può
+ * correggere o inserire Pronostici anche su Partite già iniziate. In tutti gli
+ * altri casi vale il lock grezzo (`rawLocked`). Funzione pura condivisa
+ * client/server.
+ */
+export function effectiveLock(
+    rawLocked: boolean,
+    impersonating: boolean
+): boolean {
+    return !impersonating && rawLocked;
+}
+
+/**
  * Lock GLOBALE della Fase 1: dal primo calcio d'inizio del torneo (il più
  * vicino tra TUTTE le Partite) in poi, i Pronostici di Fase 1 — Gironi e
  * bracket previsto — non sono più modificabili. Il Bonus premia la preveggenza

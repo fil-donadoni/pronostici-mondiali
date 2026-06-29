@@ -8,6 +8,7 @@ import { ScoreInput } from "@/components/score-input";
 import { useApp } from "@/lib/app-context";
 import {
     allGroupsFilled,
+    effectiveLock,
     isBracketPhase1Locked,
     isMatchLocked,
 } from "@/lib/match-lock";
@@ -441,7 +442,10 @@ function MobileKnockoutCard({
     const { impersonating } = useApp();
     const ready = homeId !== null && awayId !== null;
     // Admin in impersonation: nessun lock temporale.
-    const locked = !impersonating && (phase1Locked || isMatchLocked(kickoff));
+    const locked = effectiveLock(
+        phase1Locked || isMatchLocked(kickoff),
+        impersonating
+    );
     const isDraw = home !== "" && away !== "" && home === away;
     const winnerId = resolved?.winnerId ?? null;
     const kd = fmtKickoff(kickoff);
@@ -828,7 +832,10 @@ function KnockoutCard({
     const { impersonating } = useApp();
     const ready = homeId !== null && awayId !== null;
     // Admin in impersonation: nessun lock temporale.
-    const locked = !impersonating && (phase1Locked || isMatchLocked(kickoff));
+    const locked = effectiveLock(
+        phase1Locked || isMatchLocked(kickoff),
+        impersonating
+    );
     const isDraw = home !== "" && away !== "" && home === away;
 
     function commit(

@@ -2,11 +2,24 @@ import { describe, expect, it } from "vitest";
 import {
     allGroupsFilled,
     BRACKET_GRACE_DEADLINE,
+    effectiveLock,
     isBracketPhase1Locked,
     isGroupStageOver,
     isMatchLocked,
     isPhase1Locked,
 } from "./match-lock";
+
+describe("effectiveLock", () => {
+    it("rispetta il lock grezzo quando NON si impersona", () => {
+        expect(effectiveLock(true, false)).toBe(true);
+        expect(effectiveLock(false, false)).toBe(false);
+    });
+
+    it("aggira qualsiasi lock quando un admin impersona", () => {
+        expect(effectiveLock(true, true)).toBe(false);
+        expect(effectiveLock(false, true)).toBe(false);
+    });
+});
 
 describe("isMatchLocked", () => {
     const now = new Date("2026-06-13T12:00:00Z");

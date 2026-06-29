@@ -7,7 +7,11 @@ import {
     loadRealResults,
     loadTeams,
 } from "@/lib/queries";
-import { isGroupStageOver, isPhase1Locked } from "@/lib/match-lock";
+import {
+    effectiveLock,
+    isGroupStageOver,
+    isPhase1Locked,
+} from "@/lib/match-lock";
 import { Card, CardContent } from "@/components/ui/card";
 import { resolveRealBracket } from "@/lib/tournament/real-bracket";
 import {
@@ -74,7 +78,7 @@ export default async function TabelloneRealePage() {
             (k) => k.id
         );
         const kickoffs = ids.map((id) => matchById.get(id)?.kickoff ?? null);
-        const locked = impersonating ? false : isPhase1Locked(kickoffs);
+        const locked = effectiveLock(isPhase1Locked(kickoffs), impersonating);
 
         const matchesOut = ids.map((id) => {
             const r = bracket.get(id);

@@ -12,11 +12,15 @@ export default async function ProfiloPage() {
     if (!session) redirect("/login");
 
     const isAdmin = session.user.role === "admin";
+    const impersonating = !!session.session.impersonatedBy;
     const users = isAdmin ? await loadAllUsers() : [];
 
     return (
         <div className="mx-auto max-w-md space-y-6">
-            <ProfiloForm initialName={session.user.name} />
+            <ProfiloForm
+                initialName={session.user.name}
+                impersonating={impersonating}
+            />
             {isAdmin && (
                 <AdminImpersonatePanel users={users} meId={session.user.id} />
             )}
