@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScoreInput } from "@/components/score-input";
+import { useApp } from "@/lib/app-context";
 import {
     allGroupsFilled,
     isBracketPhase1Locked,
@@ -437,8 +438,10 @@ function MobileKnockoutCard({
         ? (teamMap.get(awayId)?.name ?? awayId)
         : (awaySlot ?? "—");
 
+    const { impersonating } = useApp();
     const ready = homeId !== null && awayId !== null;
-    const locked = phase1Locked || isMatchLocked(kickoff);
+    // Admin in impersonation: nessun lock temporale.
+    const locked = !impersonating && (phase1Locked || isMatchLocked(kickoff));
     const isDraw = home !== "" && away !== "" && home === away;
     const winnerId = resolved?.winnerId ?? null;
     const kd = fmtKickoff(kickoff);
@@ -822,8 +825,10 @@ function KnockoutCard({
         ? (teamMap.get(awayId)?.name ?? awayId)
         : (awaySlot ?? "—");
 
+    const { impersonating } = useApp();
     const ready = homeId !== null && awayId !== null;
-    const locked = phase1Locked || isMatchLocked(kickoff);
+    // Admin in impersonation: nessun lock temporale.
+    const locked = !impersonating && (phase1Locked || isMatchLocked(kickoff));
     const isDraw = home !== "" && away !== "" && home === away;
 
     function commit(

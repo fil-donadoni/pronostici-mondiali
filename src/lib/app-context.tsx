@@ -27,6 +27,8 @@ import type {
 
 type AppData = {
     userName: string;
+    // true quando un admin sta impersonando: i lock temporali sono disattivati.
+    impersonating: boolean;
     teams: TeamInfo[];
     teamMap: Map<string, TeamInfo>;
     matches: MatchInfo[];
@@ -51,6 +53,7 @@ export function useApp(): AppData {
 
 export function AppProvider({
     userName,
+    impersonating,
     teams,
     matches,
     initialPredictions,
@@ -58,6 +61,7 @@ export function AppProvider({
     children,
 }: {
     userName: string;
+    impersonating: boolean;
     teams: TeamInfo[];
     matches: MatchInfo[];
     initialPredictions: Prediction[];
@@ -164,6 +168,7 @@ export function AppProvider({
 
     const value: AppData = {
         userName,
+        impersonating,
         teams,
         teamMap,
         matches,

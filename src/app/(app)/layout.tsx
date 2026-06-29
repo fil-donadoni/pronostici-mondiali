@@ -40,9 +40,15 @@ export default async function AppLayout({
         );
     }
 
+    // Sessione di impersonation attiva → mostra la barra "Stai impersonando".
+    const impersonatedName = session.session.impersonatedBy
+        ? session.user.name
+        : null;
+
     return (
         <AppShell
             userName={session.user.name}
+            impersonatedName={impersonatedName}
             teams={teams}
             matches={matches}
             initialPredictions={predictions}

@@ -7,6 +7,7 @@ import { LogOut, Menu, RefreshCw, Trophy, X } from "lucide-react";
 import { signOut } from "@/lib/auth-client";
 import { isGroupStageOver } from "@/lib/match-lock";
 import { Button } from "@/components/ui/button";
+import { ImpersonationBar } from "@/components/impersonation-bar";
 import { AppProvider, useApp } from "@/lib/app-context";
 import type {
     Prediction,
@@ -28,6 +29,7 @@ const NAV = [
 
 export function AppShell({
     userName,
+    impersonatedName,
     teams,
     matches,
     initialPredictions,
@@ -35,6 +37,8 @@ export function AppShell({
     children,
 }: {
     userName: string;
+    /** Nome dell'utente impersonato; null se sessione normale. */
+    impersonatedName: string | null;
     teams: TeamInfo[];
     matches: MatchInfo[];
     initialPredictions: Prediction[];
@@ -44,17 +48,27 @@ export function AppShell({
     return (
         <AppProvider
             userName={userName}
+            impersonating={impersonatedName !== null}
             teams={teams}
             matches={matches}
             initialPredictions={initialPredictions}
             initialRealResults={initialRealResults}
         >
-            <Shell>{children}</Shell>
+            <Shell impersonatedName={impersonatedName}>{children}</Shell>
         </AppProvider>
     );
 }
 
-function Shell({ children }: { children: React.ReactNode }) {
+// Altezza della barra di impersonation (h-11 = 2.75rem = 44px).
+const IMPERSONATION_BAR_H = 44;
+
+function Shell({
+    impersonatedName,
+    children,
+}: {
+    impersonatedName: string | null;
+    children: React.ReactNode;
+}) {
     const router = useRouter();
     const pathname = usePathname();
     const { userName, syncing, handleSync, matches } = useApp();
@@ -69,21 +83,26 @@ function Shell({ children }: { children: React.ReactNode }) {
         : NAV.filter((i) => i.href !== "/tabellone-reale");
     const headerRef = useRef<HTMLElement>(null);
 
+    // Offset della barra di impersonation (0 in sessione normale): l'header
+    // sticky si ancora subito sotto di essa.
+    const barOffset = impersonatedName ? IMPERSONATION_BAR_H : 0;
+
     // Espone l'altezza reale dell'header come variabile CSS (--app-header-h),
     // così gli elementi sticky delle pagine si ancorano subito sotto di esso.
+    // Include l'eventuale barra di impersonation.
     useEffect(() => {
         const el = headerRef.current;
         if (!el) return;
         const apply = () =>
             document.documentElement.style.setProperty(
                 "--app-header-h",
-                `${el.offsetHeight}px`
+                `${el.offsetHeight + barOffset}px`
             );
         apply();
         const ro = new ResizeObserver(apply);
         ro.observe(el);
         return () => ro.disconnect();
-    }, []);
+    }, [barOffset]);
 
     async function handleLogout() {
         await signOut();
@@ -107,9 +126,11 @@ function Shell({ children }: { children: React.ReactNode }) {
 
     return (
         <div className="flex-1 flex flex-col">
+            {impersonatedName && <ImpersonationBar name={impersonatedName} />}
             <header
                 ref={headerRef}
-                className="sticky top-0 z-30 border-b border-border/60 bg-background/70 backdrop-blur-xl"
+                style={{ top: barOffset }}
+                className="sticky z-30 border-b border-border/60 bg-background/70 backdrop-blur-xl"
             >
                 <div className="mx-auto max-w-6xl w-full px-4 py-3 flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3">

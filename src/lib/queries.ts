@@ -14,6 +14,26 @@ import type {
     TeamInfo,
 } from "@/lib/tournament/types";
 
+export type UserRow = {
+    id: string;
+    name: string;
+    email: string;
+    role: string | null;
+};
+
+/** Tutti gli utenti registrati (per il pannello admin di impersonation). */
+export async function loadAllUsers(): Promise<UserRow[]> {
+    const rows = await db
+        .select({
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+        })
+        .from(user);
+    return rows.sort((a, b) => a.name.localeCompare(b.name));
+}
+
 export async function loadTeams(): Promise<TeamInfo[]> {
     const rows = await db.select().from(team);
     return rows.map((t) => ({

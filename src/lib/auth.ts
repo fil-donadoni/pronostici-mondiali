@@ -1,5 +1,6 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { admin } from "better-auth/plugins";
 import { db, schema } from "@/db";
 
 export const auth = betterAuth({
@@ -29,4 +30,9 @@ export const auth = betterAuth({
     session: {
         expiresIn: 60 * 60 * 24 * 7, // 7 giorni
     },
+    plugins: [
+        // Status admin via campo user.role === "admin".
+        // Abilita l'impersonation sicura (session swap + session.impersonatedBy).
+        admin(),
+    ],
 });

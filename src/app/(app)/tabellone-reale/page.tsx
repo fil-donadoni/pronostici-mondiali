@@ -26,6 +26,9 @@ export default async function TabelloneRealePage() {
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session) redirect("/login");
 
+    // Admin in impersonation: nessun lock temporale sui Pronostici di Fase 2.
+    const impersonating = !!session.session.impersonatedBy;
+
     const [teams, matches, reals, myPreds] = await Promise.all([
         loadTeams(),
         loadMatches(),
@@ -71,7 +74,7 @@ export default async function TabelloneRealePage() {
             (k) => k.id
         );
         const kickoffs = ids.map((id) => matchById.get(id)?.kickoff ?? null);
-        const locked = isPhase1Locked(kickoffs);
+        const locked = impersonating ? false : isPhase1Locked(kickoffs);
 
         const matchesOut = ids.map((id) => {
             const r = bracket.get(id);

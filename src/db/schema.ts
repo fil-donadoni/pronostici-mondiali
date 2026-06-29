@@ -28,6 +28,12 @@ export const user = pgTable("user", {
     image: text("image"),
     // Ultimo Sync eseguito dall'utente (rate limit 1/ora, tranne il primo utente).
     lastSyncAt: timestamp("last_sync_at"),
+    // --- Campi del plugin admin di better-auth ---
+    // role "admin" → può impersonare gli altri utenti; default "user".
+    role: text("role"),
+    banned: boolean("banned").$defaultFn(() => false),
+    banReason: text("ban_reason"),
+    banExpires: timestamp("ban_expires"),
     createdAt: timestamp("created_at")
         .$defaultFn(() => new Date())
         .notNull(),
@@ -47,6 +53,8 @@ export const session = pgTable("session", {
     userId: text("user_id")
         .notNull()
         .references(() => user.id, { onDelete: "cascade" }),
+    // Plugin admin: id dell'utente admin che sta impersonando (null se sessione normale).
+    impersonatedBy: text("impersonated_by"),
 });
 
 export const account = pgTable("account", {

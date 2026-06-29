@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScoreInput } from "@/components/score-input";
+import { useApp } from "@/lib/app-context";
 import { isMatchLocked, isPhase1Locked } from "@/lib/match-lock";
 import { GROUP_CODES, type GroupCode } from "@/lib/tournament/structure";
 import type { StandingRow } from "@/lib/tournament/types";
@@ -156,9 +157,12 @@ function GroupMatchRow({
     savePrediction: (matchId: string, patch: PredictionPatch) => void;
     phase1Locked: boolean;
 }) {
+    const { impersonating } = useApp();
     const [home, setHome] = useState<number | "">(prediction?.homeScore ?? "");
     const [away, setAway] = useState<number | "">(prediction?.awayScore ?? "");
-    const locked = phase1Locked || isMatchLocked(match.kickoff);
+    // Admin in impersonation: nessun lock temporale.
+    const locked =
+        !impersonating && (phase1Locked || isMatchLocked(match.kickoff));
 
     function commit(h: number | "", a: number | "") {
         if (locked) return;

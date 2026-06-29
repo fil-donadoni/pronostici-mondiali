@@ -54,10 +54,14 @@ export async function PUT(req: Request) {
         );
     }
 
+    // Un admin che impersona aggira tutti i lock temporali: può correggere o
+    // inserire Pronostici per conto dell'utente anche su Partite già iniziate.
+    const impersonating = !!session.session.impersonatedBy;
+
     // Freeze globale: a torneo iniziato la Fase 1 (Gironi + bracket previsto)
     // è congelata, così il Bonus resta una previsione pre-torneo (ADR 0003).
     // La Fase 2 (Tabellone reale) non è soggetta a questo freeze.
-    if (phase === 1) {
+    if (!impersonating && phase === 1) {
         const kickoffs = allMatches.map((r) => r.kickoff);
         if (target.stage === "GROUP") {
             // I Gironi restano sempre bloccati a torneo iniziato.
@@ -90,8 +94,9 @@ export async function PUT(req: Request) {
         }
     }
 
-    // Lock sul calcio d'inizio: una Partita iniziata non è più pronosticabile.
-    if (isMatchLocked(target.kickoff)) {
+    // Lock sul calcio d'inizio: una Partita iniziata non è più pronosticabile
+    // (salvo admin in impersonation, vedi sopra).
+    if (!impersonating && isMatchLocked(target.kickoff)) {
         return NextResponse.json(
             { error: "Partita iniziata: Pronostico bloccato" },
             { status: 403 }
