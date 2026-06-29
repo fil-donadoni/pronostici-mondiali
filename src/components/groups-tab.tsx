@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScoreInput } from "@/components/score-input";
+import { VerdictDot } from "@/components/verdict-dot";
+import { scoreVerdict } from "@/lib/tournament/compare";
 import { useApp } from "@/lib/app-context";
 import { effectiveLock, isMatchLocked, isPhase1Locked } from "@/lib/match-lock";
 import { GROUP_CODES, type GroupCode } from "@/lib/tournament/structure";
@@ -157,9 +159,15 @@ function GroupMatchRow({
     savePrediction: (matchId: string, patch: PredictionPatch) => void;
     phase1Locked: boolean;
 }) {
-    const { impersonating } = useApp();
+    const { impersonating, realResults } = useApp();
     const [home, setHome] = useState<number | "">(prediction?.homeScore ?? "");
     const [away, setAway] = useState<number | "">(prediction?.awayScore ?? "");
+    // Pallino di confronto: solo se c'è risultato reale e pronostico salvato.
+    const real = realResults.get(match.id);
+    const verdict =
+        real && real.finished && prediction
+            ? scoreVerdict(prediction, real)
+            : null;
     // Admin in impersonation: nessun lock temporale.
     const locked = effectiveLock(
         phase1Locked || isMatchLocked(match.kickoff),
@@ -174,6 +182,9 @@ function GroupMatchRow({
 
     return (
         <div className="flex items-center gap-2 text-sm">
+            <span className="flex w-2.5 shrink-0 justify-center">
+                {verdict && <VerdictDot verdict={verdict} />}
+            </span>
             <span className="flex-1 text-right truncate">{homeName}</span>
             <ScoreInput
                 value={home}

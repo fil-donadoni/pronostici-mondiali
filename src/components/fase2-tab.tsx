@@ -6,6 +6,8 @@ import { Lock } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScoreInput } from "@/components/score-input";
+import { VerdictDot } from "@/components/verdict-dot";
+import type { MatchVerdict } from "@/lib/tournament/compare";
 
 export type Fase2Match = {
     matchId: string;
@@ -20,6 +22,8 @@ export type Fase2Match = {
         awayScore: number;
         penaltyWinner: "home" | "away" | null;
     } | null;
+    // Pallino di confronto col Risultato reale (null se non ancora giocata).
+    verdict: MatchVerdict | null;
 };
 
 export type Fase2Round = {
@@ -133,6 +137,9 @@ function Fase2MatchRow({
                         3°/4°
                     </span>
                 )}
+                <span className="flex w-2.5 shrink-0 justify-center">
+                    {match.verdict && <VerdictDot verdict={match.verdict} />}
+                </span>
                 <span className="flex-1 truncate text-right">
                     {match.homeName ?? "—"}
                 </span>

@@ -19,6 +19,7 @@ import {
     STAGE_LABEL,
     type Stage,
 } from "@/lib/tournament/structure";
+import { scoreVerdict } from "@/lib/tournament/compare";
 import { Fase2Tab, type Fase2Round } from "@/components/fase2-tab";
 
 export const metadata = { title: "Tabellone reale — Mondiali 2026" };
@@ -65,6 +66,7 @@ export default async function TabelloneRealePage() {
 
     const teamName = new Map(teams.map((t) => [t.id, t.name]));
     const matchById = new Map(matches.map((m) => [m.id, m]));
+    const realById = new Map(reals.map((r) => [r.matchId, r]));
     const bracket = resolveRealBracket(teams, matches, reals);
 
     const stageOf = (id: string) => {
@@ -85,6 +87,9 @@ export default async function TabelloneRealePage() {
             const home = r?.homeTeamId ?? null;
             const away = r?.awayTeamId ?? null;
             const pred = myPreds.find((p) => p.matchId === id);
+            const real = realById.get(id);
+            const verdict =
+                real && real.finished && pred ? scoreVerdict(pred, real) : null;
             return {
                 matchId: id,
                 isThird:
@@ -102,6 +107,7 @@ export default async function TabelloneRealePage() {
                           penaltyWinner: pred.penaltyWinner,
                       }
                     : null,
+                verdict,
             };
         });
 
