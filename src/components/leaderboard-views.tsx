@@ -14,11 +14,31 @@ import {
 
 type ViewKey = "totale" | "gironi" | "tabellone" | "profezia";
 
-const VIEWS: { key: ViewKey; label: string }[] = [
-    { key: "totale", label: "Generale" },
-    { key: "gironi", label: "Gironi" },
-    { key: "tabellone", label: "Tabellone" },
-    { key: "profezia", label: "Profezia" },
+const VIEWS: { key: ViewKey; label: string; description: string }[] = [
+    {
+        key: "totale",
+        label: "Generale",
+        description:
+            "Classifica complessiva: somma dei punti di Gironi, Tabellone e Profezia.",
+    },
+    {
+        key: "gironi",
+        label: "Gironi",
+        description:
+            "Punti dai pronostici sulle partite dei gironi: punteggio esatto e risultato azzeccato.",
+    },
+    {
+        key: "tabellone",
+        label: "Tabellone",
+        description:
+            "Punti dai pronostici sulle partite a eliminazione diretta: punteggio esatto e squadra qualificata.",
+    },
+    {
+        key: "profezia",
+        label: "Profezia",
+        description:
+            "Punti per ogni squadra che hai previsto raggiungere un turno e che ci arriva davvero, con peso crescente per turno.",
+    },
 ];
 
 /** Punti su cui ordina ogni vista. */
@@ -35,13 +55,23 @@ const sortPoints = (e: FullLeaderboardEntry, view: ViewKey): number => {
     }
 };
 
-/** Turni della Profezia con il numero di squadre che raggiungono quel turno. */
-const PROFEZIA_STAGES: { key: string; label: string; total: number }[] = [
-    { key: "R32", label: "Sedicesimi", total: 32 },
-    { key: "R16", label: "Ottavi", total: 16 },
-    { key: "QF", label: "Quarti", total: 8 },
-    { key: "SF", label: "Semi", total: 4 },
-    { key: "FINAL", label: "Finale", total: 2 },
+/**
+ * Turni della Profezia con il numero di squadre che raggiungono quel turno
+ * (`total`) e i punti garantiti da regolamento per ogni squadra azzeccata
+ * (`points`, da BONUS_WEIGHTS).
+ */
+const PROFEZIA_STAGES: {
+    key: string;
+    label: string;
+    total: number;
+    points: number;
+}[] = [
+    { key: "R32", label: "Sedicesimi", total: 32, points: 1 },
+    { key: "R16", label: "Ottavi", total: 16, points: 2 },
+    { key: "QF", label: "Quarti", total: 8, points: 3 },
+    { key: "SF", label: "Semi", total: 4, points: 5 },
+    { key: "FINAL", label: "Finale", total: 2, points: 8 },
+    { key: "CHAMPION", label: "Campione", total: 1, points: 13 },
 ];
 
 /**
@@ -81,6 +111,10 @@ export function LeaderboardViews({
                     </button>
                 ))}
             </div>
+
+            <p className="text-sm text-muted-foreground">
+                {VIEWS.find((v) => v.key === view)?.description}
+            </p>
 
             <div className="overflow-x-auto">
                 <Table>
@@ -146,9 +180,10 @@ function Headers({ view }: { view: ViewKey }) {
                 {PROFEZIA_STAGES.map((s) => (
                     <Th key={s.key}>
                         {s.label}
-                        <span className="text-muted-foreground">
-                            /{s.total}
-                        </span>
+                        <p className="text-xs leading-1 pt-0 pb-4 text-muted-foreground">
+                            <br />({s.points}{" "}
+                            {s.points === 1 ? "punto" : "punti"})
+                        </p>
                     </Th>
                 ))}
                 <Th highlight>Punti</Th>
@@ -158,8 +193,8 @@ function Headers({ view }: { view: ViewKey }) {
     // gironi / tabellone
     return (
         <>
-            <Th>Esatti</Th>
-            <Th>Risultati</Th>
+            <Th>Punteggi esatti</Th>
+            <Th>Risultati esatti</Th>
             <Th highlight>Punti</Th>
         </>
     );

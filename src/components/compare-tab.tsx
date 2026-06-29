@@ -451,11 +451,6 @@ function RoundDiff({
         <div>
             <div className="flex items-center gap-2 mb-1.5">
                 <h3 className="text-sm font-semibold">{stageLabel}</h3>
-                {!hasReal && (
-                    <Badge variant="outline" className="text-[10px]">
-                        nessun dato reale
-                    </Badge>
-                )}
             </div>
             <div className="flex flex-wrap gap-1">
                 {predicted.map((t) => {

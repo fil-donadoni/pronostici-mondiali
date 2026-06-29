@@ -153,7 +153,7 @@ export function buildFullLeaderboard(
                     : computeBonus(predictedReaching, reaching);
             const profezia: ProfeziaScore = {
                 hits: Object.fromEntries(
-                    KNOCKOUT_STAGE_ORDER.map((stage) => [
+                    [...KNOCKOUT_STAGE_ORDER, "CHAMPION"].map((stage) => [
                         stage,
                         b?.hitsPerStage[stage] ?? 0,
                     ])
