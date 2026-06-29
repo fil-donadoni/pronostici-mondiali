@@ -167,10 +167,10 @@ function Headers({ view }: { view: ViewKey }) {
     if (view === "totale") {
         return (
             <>
+                <Th highlight>Totale</Th>
                 <Th>Gironi</Th>
                 <Th>Tabellone</Th>
                 <Th>Profezia</Th>
-                <Th highlight>Totale</Th>
             </>
         );
     }
@@ -204,10 +204,10 @@ function Cells({ view, e }: { view: ViewKey; e: FullLeaderboardEntry }) {
     if (view === "totale") {
         return (
             <>
+                <Num value={e.totale} highlight />
                 <Num value={e.gironi.points} />
                 <Num value={e.tabellone.points} />
                 <Num value={e.profezia.points} />
-                <Num value={e.totale} highlight />
             </>
         );
     }
