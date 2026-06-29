@@ -12,19 +12,41 @@ import {
     TableRow,
 } from "@/components/ui/table";
 
-type ViewKey = "totale" | "gironi" | "tabellone" | "bonus";
+type ViewKey = "totale" | "gironi" | "tabellone" | "profezia";
 
 const VIEWS: { key: ViewKey; label: string }[] = [
-    { key: "totale", label: "Totale" },
+    { key: "totale", label: "Generale" },
     { key: "gironi", label: "Gironi" },
     { key: "tabellone", label: "Tabellone" },
-    { key: "bonus", label: "Bonus" },
+    { key: "profezia", label: "Profezia" },
+];
+
+/** Punti su cui ordina ogni vista. */
+const sortPoints = (e: FullLeaderboardEntry, view: ViewKey): number => {
+    switch (view) {
+        case "gironi":
+            return e.gironi.points;
+        case "tabellone":
+            return e.tabellone.points;
+        case "profezia":
+            return e.profezia.points;
+        default:
+            return e.totale;
+    }
+};
+
+/** Turni della Profezia con il numero di squadre che raggiungono quel turno. */
+const PROFEZIA_STAGES: { key: string; label: string; total: number }[] = [
+    { key: "R32", label: "Sedicesimi", total: 32 },
+    { key: "R16", label: "Ottavi", total: 16 },
+    { key: "QF", label: "Quarti", total: 8 },
+    { key: "SF", label: "Semi", total: 4 },
+    { key: "FINAL", label: "Finale", total: 2 },
 ];
 
 /**
- * Le quattro viste della Classifica (ADR 0003). Le tre componenti
- * (Gironi/Tabellone/Bonus) e il Totale sono SEMPRE visibili insieme; la vista
- * scelta cambia solo l'ordinamento e la colonna evidenziata.
+ * Le quattro viste della Classifica (ADR 0003). Ogni vista mostra le colonne
+ * pertinenti; il Totale (Generale) somma Gironi + Tabellone + Profezia.
  */
 export function LeaderboardViews({
     entries,
@@ -37,7 +59,7 @@ export function LeaderboardViews({
 
     const sorted = [...entries].sort(
         (a, b) =>
-            b[view] - a[view] ||
+            sortPoints(b, view) - sortPoints(a, view) ||
             b.totale - a.totale ||
             a.name.localeCompare(b.name)
     );
@@ -60,58 +82,43 @@ export function LeaderboardViews({
                 ))}
             </div>
 
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead className="w-10 text-center">#</TableHead>
-                        <TableHead>Giocatore</TableHead>
-                        <Col label="Gironi" active={view === "gironi"} />
-                        <Col label="Tabellone" active={view === "tabellone"} />
-                        <Col label="Bonus" active={view === "bonus"} />
-                        <Col label="Totale" active={view === "totale"} />
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {sorted.map((e, i) => {
-                        const isMe = e.userId === meId;
-                        return (
-                            <TableRow
-                                key={e.userId}
-                                data-state={isMe ? "selected" : undefined}
-                            >
-                                <TableCell className="text-center">
-                                    <RankBadge rank={i + 1} />
-                                </TableCell>
-                                <TableCell className="font-medium">
-                                    {e.name}
-                                    {isMe && (
-                                        <span className="ml-2 text-xs text-muted-foreground">
-                                            (tu)
-                                        </span>
-                                    )}
-                                </TableCell>
-                                <Num
-                                    value={e.gironi}
-                                    active={view === "gironi"}
-                                />
-                                <Num
-                                    value={e.tabellone}
-                                    active={view === "tabellone"}
-                                />
-                                <Num
-                                    value={e.bonus}
-                                    active={view === "bonus"}
-                                />
-                                <Num
-                                    value={e.totale}
-                                    active={view === "totale"}
-                                    bold
-                                />
-                            </TableRow>
-                        );
-                    })}
-                </TableBody>
-            </Table>
+            <div className="overflow-x-auto">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead className="w-10 text-center">
+                                #
+                            </TableHead>
+                            <TableHead>Giocatore</TableHead>
+                            <Headers view={view} />
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {sorted.map((e, i) => {
+                            const isMe = e.userId === meId;
+                            return (
+                                <TableRow
+                                    key={e.userId}
+                                    data-state={isMe ? "selected" : undefined}
+                                >
+                                    <TableCell className="text-center">
+                                        <RankBadge rank={i + 1} />
+                                    </TableCell>
+                                    <TableCell className="font-medium">
+                                        {e.name}
+                                        {isMe && (
+                                            <span className="ml-2 text-xs text-muted-foreground">
+                                                (tu)
+                                            </span>
+                                        )}
+                                    </TableCell>
+                                    <Cells view={view} e={e} />
+                                </TableRow>
+                            );
+                        })}
+                    </TableBody>
+                </Table>
+            </div>
 
             {entries.length === 0 && (
                 <p className="py-10 text-center text-muted-foreground">
@@ -122,29 +129,96 @@ export function LeaderboardViews({
     );
 }
 
-function Col({ label, active }: { label: string; active: boolean }) {
+function Headers({ view }: { view: ViewKey }) {
+    if (view === "totale") {
+        return (
+            <>
+                <Th>Gironi</Th>
+                <Th>Tabellone</Th>
+                <Th>Profezia</Th>
+                <Th highlight>Totale</Th>
+            </>
+        );
+    }
+    if (view === "profezia") {
+        return (
+            <>
+                {PROFEZIA_STAGES.map((s) => (
+                    <Th key={s.key}>
+                        {s.label}
+                        <span className="text-muted-foreground">
+                            /{s.total}
+                        </span>
+                    </Th>
+                ))}
+                <Th highlight>Punti</Th>
+            </>
+        );
+    }
+    // gironi / tabellone
+    return (
+        <>
+            <Th>Esatti</Th>
+            <Th>Risultati</Th>
+            <Th highlight>Punti</Th>
+        </>
+    );
+}
+
+function Cells({ view, e }: { view: ViewKey; e: FullLeaderboardEntry }) {
+    if (view === "totale") {
+        return (
+            <>
+                <Num value={e.gironi.points} />
+                <Num value={e.tabellone.points} />
+                <Num value={e.profezia.points} />
+                <Num value={e.totale} highlight />
+            </>
+        );
+    }
+    if (view === "profezia") {
+        return (
+            <>
+                {PROFEZIA_STAGES.map((s) => (
+                    <Num key={s.key} value={e.profezia.hits[s.key] ?? 0} />
+                ))}
+                <Num value={e.profezia.points} highlight />
+            </>
+        );
+    }
+    const c = view === "gironi" ? e.gironi : e.tabellone;
+    return (
+        <>
+            <Num value={c.exact} />
+            <Num value={c.correctResults} />
+            <Num value={c.points} highlight />
+        </>
+    );
+}
+
+function Th({
+    children,
+    highlight,
+}: {
+    children: React.ReactNode;
+    highlight?: boolean;
+}) {
     return (
         <TableHead
-            className={`text-center ${active ? "text-primary font-semibold" : ""}`}
+            className={`text-center whitespace-nowrap ${
+                highlight ? "text-primary font-semibold" : ""
+            }`}
         >
-            {label}
+            {children}
         </TableHead>
     );
 }
 
-function Num({
-    value,
-    active,
-    bold,
-}: {
-    value: number;
-    active: boolean;
-    bold?: boolean;
-}) {
+function Num({ value, highlight }: { value: number; highlight?: boolean }) {
     return (
         <TableCell
             className={`text-center tabular-nums ${
-                active ? "text-primary font-bold" : bold ? "font-semibold" : ""
+                highlight ? "text-primary font-bold" : ""
             }`}
         >
             {value}

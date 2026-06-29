@@ -5,12 +5,12 @@ Il concorso non è più una fase unica (gironi + tabellone derivato dai propri p
 - **Fase 1** — all'inizio l'utente compila tutti i Gironi e l'intero Tabellone previsto (R32→Finale) in un colpo, partendo dalle proprie Classifiche. Si **congela al primo calcio d'inizio del torneo**.
 - **Fase 2** — pronostici sul Tabellone reale, **rolling**: a Gironi finiti si pronosticano gli accoppiamenti reali dei sedicesimi; a sedicesimi finiti gli ottavi reali; e così via fino a Finale + Finale 3°/4°. Ogni finestra si apre quando il turno precedente è finito e sincronizzato, e si blocca tutta insieme al primo calcio d'inizio del turno.
 
-Quattro classifiche, sempre visibili separatamente: **Gironi** (punti dai pronostici dei gironi), **Tabellone** (punti di Fase 2), **Bonus** (preveggenza di Fase 1), **Totale** = somma grezza delle tre.
+Quattro classifiche, sempre visibili separatamente: **Gironi** (punti dai pronostici dei gironi), **Tabellone** (punti di Fase 2), **Bonus**/**Profezia** (preveggenza di Fase 1; UI: "Profezia"), **Totale**/**Generale** = somma grezza delle tre.
 
 ### Punteggi
 
 - **Gironi**: invariato — esatto 3, solo esito 1/X/2 1 (vedi `compare.ts` `POINTS`).
-- **Tabellone (Fase 2)**, per partita: punteggio esatto = 3, "chi-passa" (squadra avanzante giusta, inclusi supplementari/rigori) = 1, cumulabili → max 4. L'"esatto" si confronta col **punteggio finale prima dei rigori** (include i supplementari).
+- **Tabellone (Fase 2)**, per partita: **stesso schema dei Gironi** — punteggio esatto = 3, esito (1/X/2) azzeccato = 1, **non** cumulabili (un esatto implica l'esito, resta 3). L'"esatto" e l'esito si confrontano col **punteggio finale prima dei rigori** (include i supplementari). I rigori / il "chi-passa" non assegnano punti a sé. _(Modifica 2026-06: in origine era esatto 3 + chi-passa 1 cumulabili, max 4; allineato ai Gironi su richiesta.)_
 - **Bonus (Fase 1)**: per ogni squadra che il Tabellone previsto in Fase 1 dava a un certo turno e che lo raggiunge davvero nel Tabellone reale. Conteggio **per squadra×turno**, cumulativo lungo i turni, peso crescente: R32=1, R16=2, QF=3, SF=5, Finale=8, Campione=13. È set-based (insiemi di squadre per turno), **non** sugli accoppiamenti. Riusa `teamsReachingStage` + `roundSetDiffs`. La Finale 3°/4° non genera Bonus a sé (i due team sono già contati alle Semifinali).
 
 ## Perché

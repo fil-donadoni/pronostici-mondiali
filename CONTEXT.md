@@ -48,10 +48,10 @@ _Avoid_: Fase iniziale, fase a gironi (ambiguo: la Fase 1 include anche il brack
 La seconda serie di pronostici, sul Tabellone reale. Si apre a turni (rolling): a Gironi finiti si pronosticano gli accoppiamenti reali dei sedicesimi; a sedicesimi finiti quelli reali degli ottavi; e così via fino alla Finale. Ogni finestra si pronostica sempre sulle squadre vere di quel turno.
 _Avoid_: Ripescaggio, seconda chance
 
-**Bonus**:
-Punti extra premiati alla Fase 1 per preveggenza: per ogni squadra che il Tabellone previsto in Fase 1 dava a un certo turno (sedicesimi/ottavi/...) e che lo raggiunge davvero nel Tabellone reale. Conteggio per squadra×turno (set-based, non accoppiamenti), cumulativo lungo i turni e con peso crescente verso la Finale.
+**Profezia** (Bonus):
+Punti extra premiati alla Fase 1 per preveggenza: per ogni squadra che il Tabellone previsto in Fase 1 dava a un certo turno (sedicesimi/ottavi/...) e che lo raggiunge davvero nel Tabellone reale. Conteggio per squadra×turno (set-based, non accoppiamenti), cumulativo lungo i turni e con peso crescente verso la Finale. Nel codice/ADR la componente è ancora `bonus`; nella UI si chiama **Profezia**.
 _Avoid_: Jolly, premio, malus
 
-**Classifica Gironi / Classifica Tabellone / Classifica Bonus / Classifica Totale**:
-Le quattro viste di graduatoria. Gironi: punti dai Pronostici dei Gironi. Tabellone: punti dai Pronostici di Fase 2. Bonus: punti di preveggenza della Fase 1. Totale: la somma delle tre. Le tre componenti sono sempre visibili separatamente.
+**Classifica Gironi / Classifica Tabellone / Classifica Profezia / Classifica Generale**:
+Le quattro viste di graduatoria. Gironi: punti dai Pronostici dei Gironi. Tabellone: punti dai Pronostici di Fase 2 (stesso schema dei Gironi: esatto 3 / esito 1, max 3). Profezia: punti di preveggenza della Fase 1. Generale (Totale): la somma delle tre. Le tre componenti sono sempre visibili separatamente.
 _Avoid_: Leaderboard, ranking, punteggio generale

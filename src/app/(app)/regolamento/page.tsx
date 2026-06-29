@@ -129,7 +129,7 @@ export default async function RegolamentoPage() {
                 </CardContent>
             </Card>
 
-            <Card>
+            {/* <Card>
                 <CardHeader className="pb-2">
                     <CardTitle className="text-base">
                         Intervento regolamentare — iscritti in ritardo
@@ -144,7 +144,7 @@ export default async function RegolamentoPage() {
                         anche col punteggio esatto. Regola retroattiva.
                     </p>
                 </CardContent>
-            </Card>
+            </Card> */}
         </div>
     );
 }

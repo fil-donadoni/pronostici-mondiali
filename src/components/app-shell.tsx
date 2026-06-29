@@ -33,6 +33,7 @@ export function AppShell({
     teams,
     matches,
     initialPredictions,
+    initialPhase2Predictions,
     initialRealResults,
     children,
 }: {
@@ -42,6 +43,7 @@ export function AppShell({
     teams: TeamInfo[];
     matches: MatchInfo[];
     initialPredictions: Prediction[];
+    initialPhase2Predictions: Prediction[];
     initialRealResults: RealResult[];
     children: React.ReactNode;
 }) {
@@ -52,6 +54,7 @@ export function AppShell({
             teams={teams}
             matches={matches}
             initialPredictions={initialPredictions}
+            initialPhase2Predictions={initialPhase2Predictions}
             initialRealResults={initialRealResults}
         >
             <Shell impersonatedName={impersonatedName}>{children}</Shell>

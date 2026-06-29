@@ -1,17 +1,9 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { Info, Medal } from "lucide-react";
 import { auth } from "@/lib/auth";
-import { loadLeaderboard } from "@/lib/queries";
+import { loadFullLeaderboard } from "@/lib/queries";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
+import { LeaderboardViews } from "@/components/leaderboard-views";
 
 export const metadata = { title: "Classifica — Mondiali 2026" };
 
@@ -19,12 +11,12 @@ export default async function ClassificaPage() {
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session) redirect("/login");
 
-    const entries = await loadLeaderboard();
+    const entries = await loadFullLeaderboard();
     const meId = session.user.id;
 
     return (
         <div className="mx-auto max-w-3xl">
-            <div className="mb-4 flex gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm">
+            {/* <div className="mb-4 flex gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm">
                 <Info className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
                 <div className="space-y-1">
                     <p className="font-medium">Intervento regolamentare</p>
@@ -37,91 +29,29 @@ export default async function ClassificaPage() {
                         pieni. La regola è retroattiva e già applicata.
                     </p>
                 </div>
-            </div>
+            </div> */}
 
             <Card>
-                <CardContent className="py-2">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead className="w-10 text-center">
-                                    #
-                                </TableHead>
-                                <TableHead>Giocatore</TableHead>
-                                <TableHead className="text-center">
-                                    Punti totali
-                                </TableHead>
-                                <TableHead className="text-center">
-                                    Punteggi esatti
-                                </TableHead>
-                                <TableHead className="text-center">
-                                    Risultati
-                                </TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {entries.map((e, i) => {
-                                const isMe = e.userId === meId;
-                                return (
-                                    <TableRow
-                                        key={e.userId}
-                                        data-state={
-                                            isMe ? "selected" : undefined
-                                        }
-                                    >
-                                        <TableCell className="text-center">
-                                            <RankBadge rank={i + 1} />
-                                        </TableCell>
-                                        <TableCell className="font-medium">
-                                            {e.name}
-                                            {isMe && (
-                                                <span className="ml-2 text-xs text-muted-foreground">
-                                                    (tu)
-                                                </span>
-                                            )}
-                                        </TableCell>
-                                        <TableCell className="text-center tabular-nums font-semibold">
-                                            {e.points}
-                                        </TableCell>
-                                        <TableCell className="text-center tabular-nums">
-                                            {e.exactScores}
-                                        </TableCell>
-                                        <TableCell className="text-center tabular-nums">
-                                            {e.correctResults}
-                                        </TableCell>
-                                    </TableRow>
-                                );
-                            })}
-                        </TableBody>
-                    </Table>
-
-                    {entries.length === 0 && (
-                        <p className="py-10 text-center text-muted-foreground">
-                            Nessun giocatore ancora.
-                        </p>
-                    )}
+                <CardContent className="py-4">
+                    <LeaderboardViews entries={entries} meId={meId} />
                 </CardContent>
             </Card>
 
-            <p className="mt-4 text-xs text-muted-foreground text-center">
-                <strong>Gironi</strong>: punteggio esatto 3 punti · esito
-                (1/X/2) azzeccato 1 punto.
-            </p>
+            <div className="mt-4 space-y-1 text-xs text-muted-foreground text-center">
+                <p>
+                    <strong>Generale</strong>: somma di Gironi + Tabellone +
+                    Profezia.
+                </p>
+                <p>
+                    <strong>Gironi</strong> e <strong>Tabellone</strong>:
+                    punteggio esatto 3 punti · esito (1/X/2) azzeccato 1 punto.
+                </p>
+                <p>
+                    <strong>Profezia</strong>: punti per ogni squadra data
+                    qualificata fin dalla Fase 1 e arrivata davvero a quel turno
+                    (peso crescente verso la Finale).
+                </p>
+            </div>
         </div>
     );
-}
-
-function RankBadge({ rank }: { rank: number }) {
-    if (rank > 3) {
-        return (
-            <span className="text-muted-foreground tabular-nums">{rank}</span>
-        );
-    }
-    const color =
-        rank === 1
-            ? "text-amber-400"
-            : rank === 2
-              ? "text-slate-300"
-              : "text-amber-700";
-    return <Medal className={`mx-auto size-5 ${color}`} strokeWidth={2.5} />;
 }

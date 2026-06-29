@@ -33,6 +33,9 @@ type AppData = {
     teamMap: Map<string, TeamInfo>;
     matches: MatchInfo[];
     predictions: Map<string, Prediction>;
+    // Pronostici di Fase 2 (Tabellone reale), sola lettura: servono al Confronto
+    // per mostrare la previsione del match knockout reale, non quella di Fase 1.
+    phase2Predictions: Map<string, Prediction>;
     realResults: Map<string, RealResult>;
     // Derivazioni (ADR 0001): tutto ricalcolato dai pronostici grezzi.
     standings: Map<GroupCode, StandingRow[]>;
@@ -57,6 +60,7 @@ export function AppProvider({
     teams,
     matches,
     initialPredictions,
+    initialPhase2Predictions,
     initialRealResults,
     children,
 }: {
@@ -65,11 +69,15 @@ export function AppProvider({
     teams: TeamInfo[];
     matches: MatchInfo[];
     initialPredictions: Prediction[];
+    initialPhase2Predictions: Prediction[];
     initialRealResults: RealResult[];
     children: React.ReactNode;
 }) {
     const [predictions, setPredictions] = useState<Map<string, Prediction>>(
         () => new Map(initialPredictions.map((p) => [p.matchId, p]))
+    );
+    const [phase2Predictions] = useState<Map<string, Prediction>>(
+        () => new Map(initialPhase2Predictions.map((p) => [p.matchId, p]))
     );
     const [realResults, setRealResults] = useState<Map<string, RealResult>>(
         () => new Map(initialRealResults.map((r) => [r.matchId, r]))
@@ -173,6 +181,7 @@ export function AppProvider({
         teamMap,
         matches,
         predictions,
+        phase2Predictions,
         realResults,
         standings,
         bracket,

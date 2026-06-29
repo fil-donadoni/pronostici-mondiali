@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import {
     loadMatches,
+    loadPhase2Predictions,
     loadPredictions,
     loadRealResults,
     loadTeams,
@@ -17,12 +18,14 @@ export default async function AppLayout({
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session) redirect("/login");
 
-    const [teams, matches, predictions, realResults] = await Promise.all([
-        loadTeams(),
-        loadMatches(),
-        loadPredictions(session.user.id),
-        loadRealResults(),
-    ]);
+    const [teams, matches, predictions, phase2Predictions, realResults] =
+        await Promise.all([
+            loadTeams(),
+            loadMatches(),
+            loadPredictions(session.user.id),
+            loadPhase2Predictions(session.user.id),
+            loadRealResults(),
+        ]);
 
     if (teams.length === 0) {
         return (
@@ -52,6 +55,7 @@ export default async function AppLayout({
             teams={teams}
             matches={matches}
             initialPredictions={predictions}
+            initialPhase2Predictions={phase2Predictions}
             initialRealResults={realResults}
         >
             {children}

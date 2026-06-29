@@ -70,16 +70,20 @@ describe("buildFullLeaderboard", () => {
         { id: "u2", name: "Bruno" },
     ];
 
-    it("compone gironi, tabellone, bonus e totale = somma", () => {
+    it("compone gironi, tabellone, profezia e totale = somma", () => {
         const preds = [
             p("u1", "A1", 1, 1, 0), // gironi: esatto -> 3
-            p("u1", "R32-1", 2, 2, 1), // tabellone: esatto + chi-passa(a2) -> 4
+            p("u1", "R32-1", 2, 2, 1), // tabellone: esatto (2-1) -> 3
         ];
         const lb = buildFullLeaderboard(users, preds, reals, matches, teams);
         const u1 = lb.find((e) => e.userId === "u1")!;
-        expect(u1.gironi).toBe(3);
-        expect(u1.tabellone).toBe(4);
-        expect(u1.totale).toBe(u1.gironi + u1.tabellone + u1.bonus);
+        expect(u1.gironi.points).toBe(3);
+        expect(u1.gironi.exact).toBe(1);
+        expect(u1.tabellone.points).toBe(3); // esatto, schema Gironi (max 3)
+        expect(u1.tabellone.exact).toBe(1);
+        expect(u1.totale).toBe(
+            u1.gironi.points + u1.tabellone.points + u1.profezia.points
+        );
     });
 
     it("ordina per totale (poi esatti, poi nome)", () => {
@@ -96,12 +100,10 @@ describe("buildFullLeaderboard", () => {
     it("utente senza pronostici -> tutto a zero", () => {
         const lb = buildFullLeaderboard(users, [], reals, matches, teams);
         for (const e of lb) {
-            expect(e).toMatchObject({
-                gironi: 0,
-                tabellone: 0,
-                bonus: 0,
-                totale: 0,
-            });
+            expect(e.gironi.points).toBe(0);
+            expect(e.tabellone.points).toBe(0);
+            expect(e.profezia.points).toBe(0);
+            expect(e.totale).toBe(0);
         }
     });
 });

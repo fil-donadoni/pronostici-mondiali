@@ -1,19 +1,21 @@
+import { outcome } from "./compare";
 import { advancerOf } from "./real-bracket";
 import type { Prediction, RealResult } from "./types";
 
 /**
  * Punteggio della Fase 2 (Tabellone reale) — logica PURA, per partita knockout.
  *
- * - Punteggio esatto = 3 (confronto col punteggio finale prima dei rigori,
- *   inclusi i supplementari: è ciò che salviamo in real_result).
- * - Chi-passa azzeccato = 1 (squadra avanzante prevista = avanzante reale).
- * Cumulabili: massimo 4 a partita. Vedi docs/adr/0003.
+ * Stesso schema dei Gironi (vedi `compare.ts` `POINTS`): punteggio esatto = 3,
+ * esito (1/X/2) azzeccato = 1, NON cumulabili (un esatto implica l'esito, resta
+ * 3). Il confronto è col punteggio finale prima dei rigori (inclusi i
+ * supplementari: è ciò che salviamo in real_result). I rigori / chi-passa non
+ * assegnano punti a sé. Vedi docs/adr/0003.
  */
-export const PHASE2_POINTS = { exact: 3, advancer: 1 } as const;
+export const PHASE2_POINTS = { exact: 3, outcome: 1 } as const;
 
 export type Phase2Score = {
     exact: boolean;
-    advancerHit: boolean;
+    outcomeHit: boolean;
     points: number;
 };
 
@@ -43,12 +45,15 @@ export function scorePhase2(
         prediction.homeScore === real.homeScore &&
         prediction.awayScore === real.awayScore;
 
-    const predAdv = predictedAdvancer(real, prediction);
-    const advancerHit = predAdv !== null && predAdv === real.advancerTeamId;
+    const outcomeHit =
+        outcome(prediction.homeScore, prediction.awayScore) ===
+        outcome(real.homeScore, real.awayScore);
 
-    const points =
-        (exact ? PHASE2_POINTS.exact : 0) +
-        (advancerHit ? PHASE2_POINTS.advancer : 0);
+    const points = exact
+        ? PHASE2_POINTS.exact
+        : outcomeHit
+          ? PHASE2_POINTS.outcome
+          : 0;
 
-    return { exact, advancerHit, points };
+    return { exact, outcomeHit, points };
 }
