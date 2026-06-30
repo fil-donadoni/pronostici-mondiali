@@ -1,21 +1,22 @@
-import { outcome } from "./compare";
 import { advancerOf } from "./real-bracket";
 import type { Prediction, RealResult } from "./types";
 
 /**
  * Punteggio della Fase 2 (Tabellone reale) — logica PURA, per partita knockout.
  *
- * Stesso schema dei Gironi (vedi `compare.ts` `POINTS`): punteggio esatto = 3,
- * esito (1/X/2) azzeccato = 1, NON cumulabili (un esatto implica l'esito, resta
- * 3). Il confronto è col punteggio finale prima dei rigori (inclusi i
- * supplementari: è ciò che salviamo in real_result). I rigori / chi-passa non
- * assegnano punti a sé. Vedi docs/adr/0003.
+ * Due livelli, NON cumulabili: punteggio esatto (gol casa+gol ospite del 120',
+ * prima dei rigori) = 3; altrimenti chi-passa azzeccato (la squadra che ho dato
+ * per avanzante è quella davvero avanzata, inclusi supplementari/rigori) = 1.
+ * Un esatto resta 3 anche se ho indicato il rigorista sbagliato (i rigori non
+ * spostano l'esatto). Il chi-passa premia chi indovina il passaggio del turno
+ * pur sbagliando il punteggio del 120' (es. reale 1-1, mia previsione 2-4 con
+ * la mia squadra che passa: 1 punto). Vedi docs/adr/0003.
  */
-export const PHASE2_POINTS = { exact: 3, outcome: 1 } as const;
+export const PHASE2_POINTS = { exact: 3, advancer: 1 } as const;
 
 export type Phase2Score = {
     exact: boolean;
-    outcomeHit: boolean;
+    advancerHit: boolean;
     points: number;
 };
 
@@ -45,15 +46,17 @@ export function scorePhase2(
         prediction.homeScore === real.homeScore &&
         prediction.awayScore === real.awayScore;
 
-    const outcomeHit =
-        outcome(prediction.homeScore, prediction.awayScore) ===
-        outcome(real.homeScore, real.awayScore);
+    const predAdvancer = predictedAdvancer(real, prediction);
+    const advancerHit =
+        predAdvancer != null &&
+        real.advancerTeamId != null &&
+        predAdvancer === real.advancerTeamId;
 
     const points = exact
         ? PHASE2_POINTS.exact
-        : outcomeHit
-          ? PHASE2_POINTS.outcome
+        : advancerHit
+          ? PHASE2_POINTS.advancer
           : 0;
 
-    return { exact, outcomeHit, points };
+    return { exact, advancerHit, points };
 }

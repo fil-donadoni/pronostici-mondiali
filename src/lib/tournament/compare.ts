@@ -11,10 +11,10 @@ export function outcome(home: number, away: number): Outcome {
 
 /**
  * Esito visivo del confronto Pronostico vs Risultato reale di una singola
- * Partita (pallino): verde = punteggio esatto, giallo = solo esito (1/X/2)
- * corretto, rosso = esito sbagliato. Stesso schema dei punti (vedi POINTS /
- * PHASE2_POINTS); per il knockout l'esito è quello del punteggio salvato
- * (90'+supplementari), i rigori non spostano il pallino.
+ * Partita dei GIRONI (pallino): verde = punteggio esatto, giallo = solo esito
+ * (1/X/2) corretto, rosso = esito sbagliato. Stesso schema dei punti dei Gironi
+ * (vedi POINTS). Per il knockout NON usare questa: il pallino e i punti vanno
+ * sul chi-passa (vedi scorePhase2 / PHASE2_POINTS), non sull'esito 1/X/2.
  */
 export type MatchVerdict = "exact" | "outcome" | "wrong";
 

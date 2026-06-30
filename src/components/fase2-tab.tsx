@@ -165,33 +165,51 @@ function Fase2MatchRow({
                 <span className="flex-1 truncate">{match.awayName ?? "—"}</span>
             </CardContent>
 
-            {isDraw && ready && !locked && (
-                <CardContent className="flex items-center gap-2 px-2 pb-2 pt-0">
-                    <span className="text-xs text-muted-foreground">
-                        Passa ai rigori:
-                    </span>
-                    <Button
-                        size="sm"
-                        variant={penalty === "home" ? "default" : "outline"}
-                        className="h-6 flex-1 truncate px-2 text-xs"
-                        onClick={() => {
-                            setPenalty("home");
-                            save(home, away, "home");
-                        }}
-                    >
-                        {match.homeName}
-                    </Button>
-                    <Button
-                        size="sm"
-                        variant={penalty === "away" ? "default" : "outline"}
-                        className="h-6 flex-1 truncate px-2 text-xs"
-                        onClick={() => {
-                            setPenalty("away");
-                            save(home, away, "away");
-                        }}
-                    >
-                        {match.awayName}
-                    </Button>
+            {isDraw && ready && (
+                <CardContent className="space-y-1 px-2 pb-2 pt-0">
+                    {!locked && (
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">
+                                Passa ai rigori:
+                            </span>
+                            <Button
+                                size="sm"
+                                variant={
+                                    penalty === "home" ? "default" : "outline"
+                                }
+                                className="h-6 flex-1 truncate px-2 text-xs"
+                                onClick={() => {
+                                    setPenalty("home");
+                                    save(home, away, "home");
+                                }}
+                            >
+                                {match.homeName}
+                            </Button>
+                            <Button
+                                size="sm"
+                                variant={
+                                    penalty === "away" ? "default" : "outline"
+                                }
+                                className="h-6 flex-1 truncate px-2 text-xs"
+                                onClick={() => {
+                                    setPenalty("away");
+                                    save(home, away, "away");
+                                }}
+                            >
+                                {match.awayName}
+                            </Button>
+                        </div>
+                    )}
+                    {penalty && (
+                        <p className="text-[11px] text-muted-foreground">
+                            Passa ai rigori:{" "}
+                            <span className="font-medium text-foreground">
+                                {penalty === "home"
+                                    ? match.homeName
+                                    : match.awayName}
+                            </span>
+                        </p>
+                    )}
                 </CardContent>
             )}
         </Card>

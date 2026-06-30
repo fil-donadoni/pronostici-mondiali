@@ -19,7 +19,8 @@ import {
     STAGE_LABEL,
     type Stage,
 } from "@/lib/tournament/structure";
-import { scoreVerdict } from "@/lib/tournament/compare";
+import type { MatchVerdict } from "@/lib/tournament/compare";
+import { scorePhase2 } from "@/lib/tournament/knockout-score";
 import { Fase2Tab, type Fase2Round } from "@/components/fase2-tab";
 
 export const metadata = { title: "Tabellone reale — Mondiali 2026" };
@@ -88,8 +89,17 @@ export default async function TabelloneRealePage() {
             const away = r?.awayTeamId ?? null;
             const pred = myPreds.find((p) => p.matchId === id);
             const real = realById.get(id);
-            const verdict =
-                real && real.finished && pred ? scoreVerdict(pred, real) : null;
+            // Pallino del knockout: come confronto/classifica usa il chi-passa,
+            // non l'esito 1/X/2 (esatto -> verde, chi-passa giusto -> giallo).
+            let verdict: MatchVerdict | null = null;
+            if (real && real.finished && pred) {
+                const s = scorePhase2(pred, real);
+                verdict = s.exact
+                    ? "exact"
+                    : s.advancerHit
+                      ? "outcome"
+                      : "wrong";
+            }
             return {
                 matchId: id,
                 isThird:

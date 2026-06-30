@@ -133,7 +133,7 @@ export function buildFullLeaderboard(
                 if (!p || !r || !r.finished) continue;
                 const s = scorePhase2(p, r);
                 if (s.exact) tabellone.exact++;
-                if (s.outcomeHit) tabellone.correctResults++;
+                if (s.advancerHit) tabellone.correctResults++;
                 tabellone.points += s.points;
             }
 
