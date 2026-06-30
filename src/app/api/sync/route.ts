@@ -4,6 +4,7 @@ import { asc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { team, match, realResult, user } from "@/db/schema";
 import { auth } from "@/lib/auth";
+import { type ApiScore, parseApiScore } from "@/lib/football-data";
 import { loadMatches, loadRealResults, loadTeams } from "@/lib/queries";
 import {
     advancerOf,
@@ -156,10 +157,7 @@ async function syncReal(apiKey: string): Promise<number> {
             homeTeam: { id: number; tla: string | null };
             awayTeam: { id: number; tla: string | null };
             status: string;
-            score: {
-                winner: string | null; // HOME_TEAM | AWAY_TEAM | DRAW | null
-                fullTime: { home: number | null; away: number | null };
-            };
+            score: ApiScore;
         }[];
     };
 
@@ -201,17 +199,16 @@ async function syncReal(apiKey: string): Promise<number> {
         const h = am.homeTeam.tla;
         const a = am.awayTeam.tla;
         if (!h || !a || !ourIds.has(h) || !ourIds.has(a)) continue;
-        const winnerTla =
-            am.score.winner === "HOME_TEAM"
-                ? h
-                : am.score.winner === "AWAY_TEAM"
-                  ? a
-                  : null;
+        const { homeScore, awayScore, winnerTla } = parseApiScore(
+            am.score,
+            h,
+            a
+        );
         apiByPair.set(pairKey(h, a), {
             h,
             a,
-            homeScore: am.score.fullTime.home ?? 0,
-            awayScore: am.score.fullTime.away ?? 0,
+            homeScore,
+            awayScore,
             winnerTla,
         });
     }

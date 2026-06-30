@@ -177,6 +177,7 @@ function Headers({ view }: { view: ViewKey }) {
     if (view === "profezia") {
         return (
             <>
+                <Th highlight>Punti</Th>
                 {PROFEZIA_STAGES.map((s) => (
                     <Th key={s.key}>
                         {s.label}
@@ -186,16 +187,15 @@ function Headers({ view }: { view: ViewKey }) {
                         </p>
                     </Th>
                 ))}
-                <Th highlight>Punti</Th>
             </>
         );
     }
     // gironi / tabellone
     return (
         <>
+            <Th highlight>Punti</Th>
             <Th>Punteggi esatti</Th>
             <Th>Risultati esatti</Th>
-            <Th highlight>Punti</Th>
         </>
     );
 }
@@ -214,19 +214,19 @@ function Cells({ view, e }: { view: ViewKey; e: FullLeaderboardEntry }) {
     if (view === "profezia") {
         return (
             <>
+                <Num value={e.profezia.points} highlight />
                 {PROFEZIA_STAGES.map((s) => (
                     <Num key={s.key} value={e.profezia.hits[s.key] ?? 0} />
                 ))}
-                <Num value={e.profezia.points} highlight />
             </>
         );
     }
     const c = view === "gironi" ? e.gironi : e.tabellone;
     return (
         <>
+            <Num value={c.points} highlight />
             <Num value={c.exact} />
             <Num value={c.correctResults} />
-            <Num value={c.points} highlight />
         </>
     );
 }
