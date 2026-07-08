@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
-import { asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { team, match, realResult, user } from "@/db/schema";
 import { auth } from "@/lib/auth";
@@ -282,23 +282,38 @@ async function syncReal(apiKey: string): Promise<number> {
                   : "away";
             const homeScore = sameOrient ? api.homeScore : api.awayScore;
             const awayScore = sameOrient ? api.awayScore : api.homeScore;
-            if (
-                await insertMissing({
-                    matchId,
-                    homeScore,
-                    awayScore,
-                    homeTeamId: homeId,
-                    awayTeamId: awayId,
-                    advancerTeamId: advancerOf(
-                        homeId,
-                        awayId,
-                        homeScore,
-                        awayScore,
-                        winner
-                    ),
-                })
-            ) {
+            const advancerTeamId = advancerOf(
+                homeId,
+                awayId,
+                homeScore,
+                awayScore,
+                winner
+            );
+            const inserted = await insertMissing({
+                matchId,
+                homeScore,
+                awayScore,
+                homeTeamId: homeId,
+                awayTeamId: awayId,
+                advancerTeamId,
+            });
+            if (inserted) {
                 insertedCount++;
+            } else if (advancerTeamId) {
+                // Riga già presente col chi-passa mancante (es. Sync fatto
+                // subito dopo i rigori, prima che l'API pubblicasse il
+                // vincitore): ora lo conosciamo, lo riempiamo. Aggiorna SOLO
+                // se advancerTeamId è null -> non tocca i punteggi né una
+                // correzione manuale del chi-passa.
+                await db
+                    .update(realResult)
+                    .set({ advancerTeamId, syncedAt: new Date() })
+                    .where(
+                        and(
+                            eq(realResult.matchId, matchId),
+                            isNull(realResult.advancerTeamId)
+                        )
+                    );
             }
             written.add(matchId);
             wroteThisPass++;
